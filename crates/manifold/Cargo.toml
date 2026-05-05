@@ -1,0 +1,44 @@
+[package]
+name = "manifold"
+version.workspace = true
+publish = false
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Generic storage, provider, and tool adapters for Converge contracts."
+
+[dependencies]
+converge-core.workspace = true
+converge-experience.workspace = true
+converge-storage.workspace = true
+object_store.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+arrow-array = { workspace = true, optional = true }
+arrow-schema = { workspace = true, optional = true }
+futures = { workspace = true, optional = true }
+lancedb = { workspace = true, optional = true }
+surrealdb = { workspace = true, optional = true }
+tokio-stream = { workspace = true, optional = true }
+
+[features]
+default = ["object-local"]
+object-local = ["object_store/fs"]
+object-s3 = ["object_store/aws"]
+object-gcs = ["object_store/gcp"]
+object-all = ["object-local", "object-s3", "object-gcs"]
+experience-surrealdb = ["dep:surrealdb", "surrealdb/protocol-ws", "surrealdb/rustls"]
+experience-lancedb = ["dep:lancedb", "dep:arrow-array", "dep:arrow-schema", "dep:tokio-stream"]
+vector-lancedb = ["dep:lancedb", "dep:arrow-array", "dep:arrow-schema", "dep:futures"]
+all-storage = ["object-all", "experience-surrealdb", "experience-lancedb", "vector-lancedb"]
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true
