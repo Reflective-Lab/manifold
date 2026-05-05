@@ -17,6 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Checkout Converge path dependencies
+        run: |
+          mkdir -p ../../work
+          git clone --depth 1 --filter=blob:none https://github.com/Reflective-Lab/converge.git ../../work/converge
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: "1.94.0"
@@ -39,4 +43,3 @@ jobs:
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
             | tar xz -C /usr/local/bin gitleaks
           gitleaks detect --source . --verbose
-

@@ -16,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Checkout Converge path dependencies
+        run: |
+          mkdir -p ../../work
+          git clone --depth 1 --filter=blob:none https://github.com/Reflective-Lab/converge.git ../../work/converge
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -29,6 +33,10 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v5
+      - name: Checkout Converge path dependencies
+        run: |
+          mkdir -p ../../work
+          git clone --depth 1 --filter=blob:none https://github.com/Reflective-Lab/converge.git ../../work/converge
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -42,6 +50,10 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v5
+      - name: Checkout Converge path dependencies
+        run: |
+          mkdir -p ../../work
+          git clone --depth 1 --filter=blob:none https://github.com/Reflective-Lab/converge.git ../../work/converge
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
@@ -55,10 +67,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Checkout Converge path dependencies
+        run: |
+          mkdir -p ../../work
+          git clone --depth 1 --filter=blob:none https://github.com/Reflective-Lab/converge.git ../../work/converge
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
           components: rustfmt
       - name: Check formatting
         run: cargo fmt --all -- --check
-
