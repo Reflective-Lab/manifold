@@ -41,6 +41,7 @@ hf-hub = { workspace = true, optional = true }
 lancedb = { workspace = true, optional = true }
 quick-xml = { workspace = true, optional = true }
 regex-lite.workspace = true
+scraper = { workspace = true, optional = true }
 surrealdb = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
 urlencoding = { workspace = true, optional = true }
@@ -51,6 +52,7 @@ _http = ["dep:reqwest"]
 registry = []
 fetch = ["_http"]
 feed = ["fetch", "dep:quick-xml"]
+extract = ["dep:scraper"]
 search-all = ["brave", "tavily", "fetch", "feed"]
 object-local = ["object_store/fs"]
 object-s3 = ["object_store/aws"]

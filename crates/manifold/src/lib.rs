@@ -19,6 +19,8 @@ pub mod contract;
 #[cfg(feature = "qwen")]
 pub mod embedding;
 pub mod experience;
+#[cfg(feature = "extract")]
+pub mod extract;
 #[cfg(feature = "feed")]
 pub mod feed;
 #[cfg(feature = "fetch")]
@@ -67,6 +69,8 @@ pub use contract::{
 pub use converge_storage::{
     GetResult, ObjectPath, ObjectStore, PutResult, StorageConfig, StorageError, StorageUri,
 };
+#[cfg(feature = "extract")]
+pub use extract::{ExtractError, ExtractedNode, HtmlExtractBackend, ScraperHtmlBackend};
 #[cfg(feature = "feed")]
 pub use feed::{
     FeedByteLimit, FeedCandidateLimit, FeedDiscoverySource, FeedEndpointCandidate, FeedError,
