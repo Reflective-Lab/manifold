@@ -1,0 +1,92 @@
+name: Stability
+
+on:
+  schedule:
+    # Weekly Monday morning (6am UTC = 7am London)
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_VERSION: "1.94.0"
+
+jobs:
+  bench-compile:
+    name: Benchmarks (compile)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Ensure benchmarks compile
+        run: cargo bench --workspace --no-run
+
+  bench-run:
+    name: Benchmarks (execute)
+    runs-on: ubuntu-latest
+    needs: bench-compile
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Run benchmarks
+        run: cargo bench --workspace
+      - name: Extract baseline data
+        if: always()
+        run: |
+          if [ -f scripts/extract-criterion-baseline.py ]; then
+            python3 scripts/extract-criterion-baseline.py || echo "Baseline extraction failed"
+          fi
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: bench-reports
+          path: target/criterion/
+      - name: Upload baseline data
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: baseline-data
+          path: kb/Baselines/
+
+  soak:
+    name: Soak Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Run soak tests
+        env:
+          SOAK_CYCLES: "1000"
+          SOAK_CONCURRENCY: "100"
+          SOAK_ITERATIONS: "200"
+        run: cargo test --workspace -- --include-ignored soak
+
+  security-blocking:
+    name: Security Audit (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - name: Run cargo-audit (blocking)
+        run: cargo audit --deny warnings
+
+  deny:
+    name: Cargo Deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: EmbarkStudios/cargo-deny-action@v1

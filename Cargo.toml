@@ -10,9 +10,9 @@ license = "MIT"
 repository = "https://github.com/Reflective-Lab/manifold"
 
 [workspace.dependencies]
-converge-core = "3.8.0"
-converge-experience = "3.8.0"
-converge-storage = "3.8.0"
+converge-core = "3.8.1"
+converge-experience = "3.8.1"
+converge-storage = "3.8.1"
 
 arrow-array = "57"
 arrow-schema = "57"
@@ -50,8 +50,3 @@ uninlined_format_args = "allow"
 needless_pass_by_value = "allow"
 unused_self = "allow"
 wildcard_imports = "allow"
-
-[patch.crates-io]
-converge-core = { path = "../../work/converge/crates/core" }
-converge-experience = { path = "../../work/converge/crates/experience" }
-converge-storage = { path = "../../work/converge/crates/storage" }

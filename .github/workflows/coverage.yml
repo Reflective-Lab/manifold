@@ -1,0 +1,61 @@
+name: Coverage
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_VERSION: "1.94.0"
+  # Coverage floor (Extension Release Checklist §4)
+  COVERAGE_FLOOR: "80"
+
+jobs:
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      - name: Generate coverage
+        run: |
+          cargo llvm-cov --workspace --lib --tests \
+            --ignore-filename-regex '(^|/)(tests|benches|examples)/' \
+            --json --summary-only --output-path coverage.json
+      - name: Extract coverage percentage
+        id: cov
+        run: |
+          if [ -f coverage.json ]; then
+            COV=$(python3 -c "import json; d=json.load(open('coverage.json')); print(f\"{d['data'][0]['totals']['lines']['percent']:.1f}\")")
+            echo "percent=$COV" >> "$GITHUB_OUTPUT"
+            echo "### Coverage: ${COV}%" >> "$GITHUB_STEP_SUMMARY"
+            # Enforce floor
+            python3 -c "exit(0 if float('$COV') >= float('$COVERAGE_FLOOR') else 1)" || \
+              { echo "FAIL: coverage $COV% below ${COVERAGE_FLOOR}% floor" >&2 ; exit 1; }
+          else
+            echo "FAIL: coverage.json not produced" >&2
+            exit 1
+          fi
+      # Optional: publish a dynamic badge — uncomment and fill the gist details.
+      # - name: Update coverage badge
+      #   if: github.ref == 'refs/heads/main'
+      #   uses: schneegans/dynamic-badges-action@v1.7.0
+      #   with:
+      #     auth: ${{ secrets.GIST_TOKEN }}
+      #     gistID: REPLACE_WITH_GIST_ID
+      #     filename: REPLACE_WITH_BADGE_FILE.json
+      #     label: coverage
+      #     message: ${{ steps.cov.outputs.percent }}%
+      #     valColorRange: ${{ steps.cov.outputs.percent }}
+      #     minColorRange: 0
+      #     maxColorRange: 100
