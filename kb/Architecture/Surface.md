@@ -32,9 +32,7 @@ families with adapter-qualified type names.
 - `converge-core` — current storage/experience support types during the 3.8.1
   extraction line.
 
-During the 3.8.1 migration this repo uses a local `[patch.crates-io]` override
-to compile against `~/dev/work/converge`. Remove it after Converge 3.8.1 is
-published.
+Converge platform dependencies resolve from crates.io at `3.8.1` or newer.
 
 ## Forbidden imports
 

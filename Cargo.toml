@@ -74,11 +74,3 @@ collapsible_if = "allow"
 match_same_arms = "allow"
 struct_field_names = "allow"
 float_cmp = "allow"
-
-# Local Converge development override. Remove when 3.8.1 is published.
-[patch.crates-io]
-converge-core = { path = "../../work/converge/crates/core" }
-converge-experience = { path = "../../work/converge/crates/experience" }
-converge-pack = { path = "../../work/converge/crates/pack" }
-converge-provider = { path = "../../work/converge/crates/provider" }
-converge-storage = { path = "../../work/converge/crates/storage" }

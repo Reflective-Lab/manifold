@@ -1379,44 +1379,69 @@ mod tests {
 
     #[test]
     fn test_metadata_override() {
-        let mut registry = ProviderRegistry::with_providers(&["anthropic"]);
+        let mut registry = ProviderRegistry {
+            base_selector: ModelSelector::empty()
+                .with_model(ModelMetadata::new(
+                    "anthropic",
+                    "claude-haiku-4-5-20251001",
+                    CostClass::VeryLow,
+                    1900,
+                    0.60,
+                ))
+                .with_model(ModelMetadata::new(
+                    "openai",
+                    "gpt-3.5-turbo",
+                    CostClass::VeryLow,
+                    800,
+                    0.70,
+                )),
+            available_providers: ["anthropic", "openai"]
+                .into_iter()
+                .map(String::from)
+                .collect(),
+            metadata_overrides: std::collections::HashMap::new(),
+        };
 
-        // Override latency for a model
+        // Override latency and quality enough to change candidate ranking.
         let updated = ModelMetadata::new(
             "anthropic",
             "claude-haiku-4-5-20251001",
             CostClass::VeryLow,
-            1000, // Updated latency
-            0.78,
+            500,
+            0.95,
         );
         registry.update_metadata("anthropic", "claude-haiku-4-5-20251001", updated);
 
         let reqs = AgentRequirements::fast_cheap();
-        let result = registry.select(&reqs);
-        assert!(result.is_ok());
+        let (provider, model) = registry.select(&reqs).unwrap();
+        assert_eq!(provider, "anthropic");
+        assert_eq!(model, "claude-haiku-4-5-20251001");
     }
 
     #[test]
     fn test_model_selection() {
         let _guard = TEST_LOCK.lock();
         set_skip_availability_check(true);
-        let selector = ModelSelector::new();
+        let selector = ModelSelector::empty()
+            .with_model(ModelMetadata::new(
+                "anthropic",
+                "claude-haiku-test",
+                CostClass::VeryLow,
+                1200,
+                0.78,
+            ))
+            .with_model(ModelMetadata::new(
+                "openai",
+                "gpt-4-test",
+                CostClass::Medium,
+                5000,
+                0.90,
+            ));
         let reqs = AgentRequirements::fast_cheap();
 
         let (provider, model) = selector.select(&reqs).unwrap();
-        // Should select a VeryLow cost, fast model
-        assert!(
-            provider == "anthropic"
-                || provider == "openai"
-                || provider == "gemini"
-                || provider == "qwen"
-        );
-        assert!(
-            model.contains("haiku")
-                || model.contains("flash")
-                || model.contains("turbo")
-                || model.contains("qwen")
-        );
+        assert_eq!(provider, "anthropic");
+        assert_eq!(model, "claude-haiku-test");
     }
 
     #[test]

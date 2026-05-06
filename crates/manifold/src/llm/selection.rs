@@ -417,6 +417,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "gemini")]
     fn provider_override_selects_requested_backend_family() {
         let config = ChatBackendSelectionConfig::default().with_provider_override("gemini");
         let selected =
@@ -438,6 +439,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(
+        feature = "anthropic",
+        feature = "openai",
+        feature = "gemini",
+        feature = "mistral",
+        feature = "openrouter"
+    ))]
     fn capability_driven_selection_stays_with_instantiable_backends() {
         let config = ChatBackendSelectionConfig::default().with_criteria(
             SelectionCriteria::analysis().with_capabilities(

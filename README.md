@@ -138,10 +138,7 @@ just lint
 just doc
 ```
 
-Converge platform dependencies resolve from crates.io.
-During Converge 3.8.1 migration this repo uses a local `[patch.crates-io]`
-override to compile against `~/dev/work/converge`; remove that override after
-3.8.1 is published.
+Converge platform dependencies resolve from crates.io at `3.8.1` or newer.
 
 ## Project Files
 
