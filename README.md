@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/ci.yml/badge.svg)](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/ci.yml)
 [![Security](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/security.yml/badge.svg)](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/security.yml)
+[![Crates.io](https://img.shields.io/crates/v/converge-manifold-adapters.svg)](https://crates.io/crates/converge-manifold-adapters)
+[![docs.rs](https://docs.rs/converge-manifold-adapters/badge.svg)](https://docs.rs/converge-manifold-adapters)
 [![dependency status](https://deps.rs/repo/github/Reflective-Lab/manifold-adapters/status.svg)](https://deps.rs/repo/github/Reflective-Lab/manifold-adapters)
 ![MSRV](https://img.shields.io/badge/MSRV-1.94.0-blue)
 <img alt="gitleaks badge" src="https://img.shields.io/badge/protected%20by-gitleaks-blue">
@@ -12,6 +14,9 @@ Generic adapter implementations for Converge contracts.
 `manifold` is a Converge extension for provider, storage, vector, experience,
 fetch, feed, search, LLM, embedding, and tool adapters where the concrete
 vendor should be hidden behind an interchangeable capability.
+
+Cargo package: `converge-manifold-adapters`. Rust library name remains
+`manifold`.
 
 ## Why It Exists
 

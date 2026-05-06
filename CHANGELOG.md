@@ -7,6 +7,11 @@ Versioning before 1.0 with the usual pre-1.0 compatibility caveats.
 
 ## [Unreleased]
 
+### Changed
+
+- Cargo package renamed from `manifold` to `converge-manifold-adapters`; Rust
+  library name remains `manifold`.
+
 ## [0.1.0] - 2026-05-05
 
 ### Added

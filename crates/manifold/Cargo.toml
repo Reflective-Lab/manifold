@@ -1,5 +1,5 @@
 [package]
-name = "manifold"
+name = "converge-manifold-adapters"
 version.workspace = true
 publish = false
 edition.workspace = true
@@ -7,6 +7,10 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Generic storage, provider, and tool adapters for Converge contracts."
+
+[lib]
+name = "manifold"
+path = "src/lib.rs"
 
 [dependencies]
 converge-core.workspace = true
