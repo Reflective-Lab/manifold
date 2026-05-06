@@ -11,13 +11,20 @@ description = "Generic storage, provider, and tool adapters for Converge contrac
 [dependencies]
 converge-core.workspace = true
 converge-experience.workspace = true
+converge-provider.workspace = true
 converge-storage.workspace = true
 object_store.workspace = true
+reqwest = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
+serde_yaml.workspace = true
+schemars.workspace = true
+sha2.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+toml.workspace = true
 tracing.workspace = true
+zeroize = { workspace = true, optional = true }
 
 arrow-array = { workspace = true, optional = true }
 arrow-schema = { workspace = true, optional = true }
@@ -28,6 +35,8 @@ tokio-stream = { workspace = true, optional = true }
 
 [features]
 default = ["object-local"]
+_http = ["dep:reqwest"]
+registry = []
 object-local = ["object_store/fs"]
 object-s3 = ["object_store/aws"]
 object-gcs = ["object_store/gcp"]
@@ -36,9 +45,65 @@ experience-surrealdb = ["dep:surrealdb", "surrealdb/protocol-ws", "surrealdb/rus
 experience-lancedb = ["dep:lancedb", "dep:arrow-array", "dep:arrow-schema", "dep:tokio-stream"]
 vector-lancedb = ["dep:lancedb", "dep:arrow-array", "dep:arrow-schema", "dep:futures"]
 all-storage = ["object-all", "experience-surrealdb", "experience-lancedb", "vector-lancedb"]
+anthropic = ["_http"]
+gemini = ["_http"]
+openai = ["_http"]
+openrouter = ["_http"]
+mistral = ["_http"]
+perplexity = ["_http"]
+qwen = ["_http"]
+grok = ["_http"]
+deepseek = ["_http"]
+baidu = ["_http"]
+zhipu = ["_http"]
+kimi = ["_http"]
+apertus = ["_http"]
+arcee = ["_http"]
+writer = ["_http"]
+minmax = ["_http"]
+kong = ["_http"]
+staik = ["_http"]
+brave = ["_http"]
+llm-all = [
+    "registry",
+    "anthropic",
+    "gemini",
+    "openai",
+    "openrouter",
+    "mistral",
+    "perplexity",
+    "qwen",
+    "grok",
+    "deepseek",
+    "baidu",
+    "zhipu",
+    "kimi",
+    "apertus",
+    "arcee",
+    "writer",
+    "minmax",
+    "kong",
+    "staik",
+    "brave",
+]
+secure = ["dep:zeroize"]
 
 [dev-dependencies]
+dotenv.workspace = true
+parking_lot.workspace = true
+proptest.workspace = true
 tempfile.workspace = true
+wiremock.workspace = true
+
+[[example]]
+name = "live_chat"
+path = "examples/live_chat.rs"
+required-features = ["llm-all"]
+
+[[example]]
+name = "format_matrix"
+path = "examples/format_matrix.rs"
+required-features = ["openrouter"]
 
 [lints]
 workspace = true

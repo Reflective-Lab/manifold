@@ -1,0 +1,2980 @@
+# =============================================================================
+# Converge Model Registry
+# =============================================================================
+#
+# This file defines all available models with their capabilities and metadata.
+# The model selector uses this to match requirements to providers.
+#
+# PROVIDER STRUCTURE:
+#   providers:
+#     <provider_id>:
+#       env_key: ENV_VAR_NAME           # Required for availability check
+#       env_key_secondary: VAR_NAME     # Optional secondary key (e.g., Baidu)
+#       key_url: https://...            # Where to get an API key
+#       api_url: https://...            # API endpoint for requests
+#       country: XX                     # ISO country code
+#       region: XX                      # Region (EU, US, CN, LOCAL)
+#       compliance: [GDPR, SOC2, ...]   # Compliance certifications
+#       provider_type: direct|aggregator # Whether this is a direct provider or aggregator
+#       models:
+#         <model_id>:
+#           cost_class: VeryLow|Low|Medium|High|VeryHigh
+#           typical_latency_ms: <number>
+#           quality: <0.0-1.0>
+#           context_tokens: <number>
+#           capabilities: [tool_use, vision, reasoning, audio, streaming, ...]
+#
+#           # === ENRICHED SCHEMA (Phase 1-3) ===
+#           # Architecture
+#           architecture: dense|moe|hybrid
+#           total_params_b: <number>     # Total parameters in billions
+#           active_params_b: <number>    # Active params per forward pass (for MoE)
+#
+#           # Output constraints
+#           max_output_tokens: <number>
+#
+#           # Multimodal
+#           native_multimodal: true|false
+#           modalities: [text, image, video, audio]
+#
+#           # Agentic capabilities
+#           agentic:
+#             max_parallel_agents: <number>
+#             supports_orchestration: true|false
+#
+#           # Reasoning modes
+#           thinking_mode: true|false
+#           reasoning_effort_levels: [none, low, medium, high, xhigh]
+#           native_compaction: true|false
+#           thinking_variant: <model_id>
+#
+#           # Pricing (USD per million tokens)
+#           pricing:
+#             input_per_m: <number>
+#             output_per_m: <number>
+#
+#           # === RICH METADATA (Phase 4+) ===
+#           publisher: <string>          # Model publisher/organization
+#           family: <string>             # Model family name
+#           release_date: YYYY-MM-DD
+#           training_cutoff: YYYY-MM-DD
+#           open_weights: true|false
+#           license: <string|url>
+#           beta: true|false
+#           deprecated: true|false
+#           benchmarks:                 # Scores keyed by benchmark name
+#             mmlu: <number>
+#             gsm8k: <number>
+#           tags: [coding, long_context, ...]
+#           rate_limits:
+#             requests_per_min: <number>
+#             tokens_per_min: <number>
+#             requests_per_day: <number>
+#             concurrent_requests: <number>
+#           notes: <string>
+#
+# =============================================================================
+
+providers:
+  # ===========================================================================
+  # US-BASED PROVIDERS (Direct)
+  # ===========================================================================
+
+  anthropic:
+    env_key: ANTHROPIC_API_KEY
+    key_url: https://console.anthropic.com/settings/keys
+    api_url: https://api.anthropic.com/v1
+    country: US
+    region: US
+    provider_type: direct
+    models:
+      claude-haiku-4-5-20251001:
+        cost_class: VeryLow
+        typical_latency_ms: 1200
+        quality: 0.78
+        context_tokens: 200000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.80
+          output_per_m: 4.00
+
+      claude-sonnet-4-6:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.93
+        context_tokens: 200000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual, computer_use]
+        architecture: dense
+        thinking_mode: true
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 15.00
+
+      claude-opus-4-6:
+        cost_class: High
+        typical_latency_ms: 7000
+        quality: 0.97
+        context_tokens: 200000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        thinking_mode: true
+        pricing:
+          input_per_m: 15.00
+          output_per_m: 75.00
+
+      # Legacy — kept for migration; deprecated in favour of claude-haiku-4-5-20251001
+      claude-3-5-haiku-20241022:
+        cost_class: VeryLow
+        typical_latency_ms: 1500
+        quality: 0.75
+        context_tokens: 200000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, multilingual]
+        architecture: dense
+        deprecated: true
+        pricing:
+          input_per_m: 0.80
+          output_per_m: 4.00
+
+      claude-3-5-sonnet-20241022:
+        cost_class: Low
+        typical_latency_ms: 3000
+        quality: 0.85
+        context_tokens: 200000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        deprecated: true
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 15.00
+
+      claude-3-opus-20240229:
+        cost_class: High
+        typical_latency_ms: 8000
+        quality: 0.95
+        context_tokens: 200000
+        max_output_tokens: 4096
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        deprecated: true
+        pricing:
+          input_per_m: 15.00
+          output_per_m: 75.00
+
+      claude-sonnet-4-20250514:
+        cost_class: Medium
+        typical_latency_ms: 4000
+        quality: 0.92
+        context_tokens: 200000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        thinking_mode: true
+        deprecated: true
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 15.00
+
+      claude-opus-4-20250514:
+        cost_class: VeryHigh
+        typical_latency_ms: 10000
+        quality: 0.98
+        context_tokens: 200000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        thinking_mode: true
+        deprecated: true
+        pricing:
+          input_per_m: 15.00
+          output_per_m: 75.00
+
+      claude-opus-4-5-20250514:
+        cost_class: VeryHigh
+        typical_latency_ms: 12000
+        quality: 0.99
+        context_tokens: 200000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        thinking_mode: true
+        deprecated: true
+        pricing:
+          input_per_m: 15.00
+          output_per_m: 75.00
+
+  openai:
+    env_key: OPENAI_API_KEY
+    key_url: https://platform.openai.com/api-keys
+    api_url: https://api.openai.com/v1
+    country: US
+    region: US
+    provider_type: direct
+    models:
+      gpt-3.5-turbo:
+        cost_class: VeryLow
+        typical_latency_ms: 1200
+        quality: 0.70
+        context_tokens: 16385
+        max_output_tokens: 4096
+        capabilities: [tool_use, structured_output]
+        architecture: dense
+        pricing:
+          input_per_m: 0.50
+          output_per_m: 1.50
+
+      gpt-4:
+        cost_class: Medium
+        typical_latency_ms: 5000
+        quality: 0.90
+        context_tokens: 8192
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 30.00
+          output_per_m: 60.00
+
+      gpt-4-turbo:
+        cost_class: Medium
+        typical_latency_ms: 4000
+        quality: 0.92
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 10.00
+          output_per_m: 30.00
+
+      gpt-4o:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.90
+        context_tokens: 128000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image, audio]
+        pricing:
+          input_per_m: 2.50
+          output_per_m: 10.00
+
+      gpt-4o-mini:
+        cost_class: VeryLow
+        typical_latency_ms: 1000
+        quality: 0.75
+        context_tokens: 128000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, multilingual]
+        architecture: dense
+        native_multimodal: true
+        pricing:
+          input_per_m: 0.15
+          output_per_m: 0.60
+
+      o1-preview:
+        cost_class: VeryHigh
+        typical_latency_ms: 30000
+        quality: 0.98
+        context_tokens: 128000
+        max_output_tokens: 32768
+        capabilities: [reasoning, code]
+        architecture: dense
+        thinking_mode: true
+        pricing:
+          input_per_m: 15.00
+          output_per_m: 60.00
+
+      o1-mini:
+        cost_class: High
+        typical_latency_ms: 15000
+        quality: 0.92
+        context_tokens: 128000
+        max_output_tokens: 65536
+        capabilities: [reasoning, code]
+        architecture: dense
+        thinking_mode: true
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 12.00
+
+      o3-mini:
+        cost_class: Medium
+        typical_latency_ms: 10000
+        quality: 0.94
+        context_tokens: 128000
+        max_output_tokens: 65536
+        capabilities: [reasoning, code, tool_use]
+        architecture: dense
+        thinking_mode: true
+        pricing:
+          input_per_m: 1.10
+          output_per_m: 4.40
+
+      gpt-5.4:
+        cost_class: High
+        typical_latency_ms: 5500
+        quality: 0.99
+        context_tokens: 1050000
+        max_output_tokens: 128000
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual, web_search, streaming, tool_choice, parallel_tool_calls, prompt_caching, file_search, code_interpreter, computer_use, tool_search, mcp, native_compaction, reasoning_effort]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        thinking_mode: true
+        reasoning_effort_levels: [none, low, medium, high, xhigh]
+        native_compaction: true
+        pricing:
+          input_per_m: 2.50
+          output_per_m: 15.00
+        publisher: OpenAI
+        family: GPT
+        release_date: 2026-03-04
+        training_cutoff: 2025-02-28
+        tags: [agentic, coding, long_context, computer_use, tool_search, native_compaction]
+        notes: "Frontier GPT-5.4 model (1.05M context) with native tool search, computer use, and native context compaction."
+
+      gpt-5.4-mini:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.95
+        context_tokens: 1050000
+        max_output_tokens: 128000
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual, web_search, streaming, tool_choice, parallel_tool_calls, prompt_caching, file_search, code_interpreter, tool_search, native_compaction, reasoning_effort]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        thinking_mode: true
+        reasoning_effort_levels: [none, low, medium, high]
+        native_compaction: true
+        pricing:
+          input_per_m: 0.40
+          output_per_m: 3.20
+        publisher: OpenAI
+        family: GPT
+        release_date: 2026-03-04
+        training_cutoff: 2025-02-28
+        tags: [agentic, coding, long_context, low_latency, tool_search, native_compaction]
+        notes: "Fast GPT-5.4 variant with strong reasoning/tool use and 1.05M context."
+
+      gpt-5.4-pro:
+        cost_class: VeryHigh
+        typical_latency_ms: 11000
+        quality: 1.00
+        context_tokens: 1050000
+        max_output_tokens: 128000
+        capabilities: [tool_use, vision, code, reasoning, multilingual, web_search, streaming, tool_choice, parallel_tool_calls, prompt_caching, file_search, code_interpreter, computer_use, tool_search, hosted_shell, apply_patch, native_compaction, reasoning_effort]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        thinking_mode: true
+        reasoning_effort_levels: [medium, high, xhigh]
+        native_compaction: true
+        pricing:
+          input_per_m: 20.00
+          output_per_m: 160.00
+        publisher: OpenAI
+        family: GPT
+        release_date: 2026-03-04
+        training_cutoff: 2025-02-28
+        tags: [agentic, coding, long_context, high_accuracy, computer_use, hosted_shell, apply_patch]
+        notes: "Highest-accuracy GPT-5.4 tier optimized for coding and long-horizon agent workflows; structured output is not supported."
+
+      gpt-5.2:
+        cost_class: VeryHigh
+        typical_latency_ms: 8000
+        quality: 0.98
+        context_tokens: 400000
+        max_output_tokens: 32768
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image, audio, video]
+        thinking_mode: true
+        agentic:
+          max_parallel_agents: 50
+          supports_orchestration: true
+        pricing:
+          input_per_m: 75.00
+          output_per_m: 150.00
+        publisher: OpenAI
+        family: GPT
+        deprecated: true
+        notes: "Superseded by GPT-5.4 series."
+
+  gemini:
+    env_key: GEMINI_API_KEY
+    key_url: https://makersuite.google.com/app/apikey
+    api_url: https://generativelanguage.googleapis.com/v1beta
+    country: US
+    region: US
+    provider_type: direct
+    models:
+      gemini-pro:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.80
+        context_tokens: 32000
+        max_output_tokens: 8192
+        capabilities: [tool_use, structured_output, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.50
+          output_per_m: 1.50
+
+      gemini-1.5-flash:
+        cost_class: VeryLow
+        typical_latency_ms: 800
+        quality: 0.78
+        context_tokens: 1000000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, multilingual]
+        architecture: moe
+        native_multimodal: true
+        modalities: [text, image, video, audio]
+        pricing:
+          input_per_m: 0.075
+          output_per_m: 0.30
+
+      gemini-2.0-flash:
+        cost_class: VeryLow
+        typical_latency_ms: 700
+        quality: 0.82
+        context_tokens: 1000000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: moe
+        native_multimodal: true
+        modalities: [text, image, video, audio]
+        pricing:
+          input_per_m: 0.10
+          output_per_m: 0.40
+
+      gemini-2.0-flash-exp:
+        cost_class: VeryLow
+        typical_latency_ms: 1000
+        quality: 0.75
+        context_tokens: 1000000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, multilingual]
+        architecture: moe
+        native_multimodal: true
+        deprecated: true
+        pricing:
+          input_per_m: 0.075
+          output_per_m: 0.30
+
+      gemini-2.5-flash:
+        cost_class: VeryLow
+        typical_latency_ms: 800
+        quality: 0.84
+        context_tokens: 1000000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: moe
+        native_multimodal: true
+        thinking_mode: true
+        pricing:
+          input_per_m: 0.15
+          output_per_m: 0.60
+        notes: "Preview flagship model; strong tool-calling and long-horizon planning with 1.05M context. Audio input priced separately."
+
+  perplexity:
+    env_key: PERPLEXITY_API_KEY
+    key_url: https://www.perplexity.ai/settings/api
+    api_url: https://api.perplexity.ai
+    country: US
+    region: US
+    provider_type: direct
+    models:
+      pplx-7b-online:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.75
+        context_tokens: 4096
+        max_output_tokens: 4096
+        capabilities: [web_search]
+        architecture: dense
+        pricing:
+          input_per_m: 0.20
+          output_per_m: 0.20
+
+      pplx-70b-online:
+        cost_class: Medium
+        typical_latency_ms: 4000
+        quality: 0.90
+        context_tokens: 4096
+        max_output_tokens: 4096
+        capabilities: [web_search, reasoning]
+        architecture: dense
+        pricing:
+          input_per_m: 1.00
+          output_per_m: 1.00
+
+      sonar-small-online:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.78
+        context_tokens: 12000
+        max_output_tokens: 4096
+        capabilities: [web_search]
+        architecture: dense
+        pricing:
+          input_per_m: 0.20
+          output_per_m: 0.20
+
+      sonar-medium-online:
+        cost_class: Medium
+        typical_latency_ms: 3500
+        quality: 0.88
+        context_tokens: 12000
+        max_output_tokens: 4096
+        capabilities: [web_search, reasoning]
+        architecture: dense
+        pricing:
+          input_per_m: 1.00
+          output_per_m: 1.00
+
+      sonar-pro:
+        cost_class: Medium
+        typical_latency_ms: 3000
+        quality: 0.92
+        context_tokens: 200000
+        max_output_tokens: 8192
+        capabilities: [web_search, reasoning, code]
+        architecture: dense
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 15.00
+
+  grok:
+    env_key: GROK_API_KEY
+    key_url: https://console.x.ai/
+    api_url: https://api.x.ai/v1
+    country: US
+    region: US
+    provider_type: direct
+    models:
+      grok-beta:
+        cost_class: Medium
+        typical_latency_ms: 3000
+        quality: 0.80
+        context_tokens: 8192
+        max_output_tokens: 4096
+        capabilities: [reasoning, code]
+        architecture: dense
+        pricing:
+          input_per_m: 5.00
+          output_per_m: 15.00
+
+      grok-2:
+        cost_class: High
+        typical_latency_ms: 4000
+        quality: 0.88
+        context_tokens: 131072
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, reasoning, code, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 2.00
+          output_per_m: 10.00
+
+      grok-4.1:
+        cost_class: Medium
+        typical_latency_ms: 3500
+        quality: 0.94
+        context_tokens: 131072
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, reasoning, code, multilingual, web_search]
+        architecture: moe
+        native_multimodal: true
+        agentic:
+          max_parallel_agents: 30
+          supports_orchestration: true
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 12.00
+
+  # ===========================================================================
+  # US-BASED PROVIDERS (Enterprise NLP)
+  # ===========================================================================
+
+  cohere:
+    env_key: COHERE_API_KEY
+    key_url: https://dashboard.cohere.com/api-keys
+    api_url: https://api.cohere.ai/v1
+    country: CA
+    region: US
+    provider_type: direct
+    compliance: [SOC2]
+    models:
+      command-r7b:
+        cost_class: VeryLow
+        typical_latency_ms: 1200
+        quality: 0.70
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, multilingual]
+        architecture: dense
+        total_params_b: 7
+        pricing:
+          input_per_m: 0.0375
+          output_per_m: 0.15
+
+      command-r:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.82
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, structured_output, multilingual]
+        architecture: dense
+        total_params_b: 35
+        pricing:
+          input_per_m: 0.15
+          output_per_m: 0.60
+
+      command-r-plus:
+        cost_class: Medium
+        typical_latency_ms: 3500
+        quality: 0.90
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, structured_output, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 104
+        pricing:
+          input_per_m: 2.50
+          output_per_m: 10.00
+
+      command-a:
+        cost_class: Medium
+        typical_latency_ms: 3000
+        quality: 0.92
+        context_tokens: 256000
+        max_output_tokens: 8192
+        capabilities: [tool_use, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 111
+        pricing:
+          input_per_m: 2.50
+          output_per_m: 10.00
+
+      # Embedding models
+      embed-v4:
+        cost_class: VeryLow
+        typical_latency_ms: 100
+        quality: 0.92
+        context_tokens: 512
+        capabilities: [multilingual]
+        type: embedding
+        dimensions: 1024
+        pricing:
+          input_per_m: 0.12
+
+      embed-multilingual-v3:
+        cost_class: VeryLow
+        typical_latency_ms: 100
+        quality: 0.88
+        context_tokens: 512
+        capabilities: [multilingual]
+        type: embedding
+        dimensions: 1024
+        pricing:
+          input_per_m: 0.10
+
+      # Reranker models
+      rerank-v3.5:
+        cost_class: Low
+        typical_latency_ms: 200
+        quality: 0.94
+        context_tokens: 4096
+        capabilities: [multilingual]
+        type: reranker
+        pricing:
+          input_per_m: 2.00
+
+  ai21:
+    env_key: AI21_API_KEY
+    key_url: https://studio.ai21.com/account/api-key
+    api_url: https://api.ai21.com/studio/v1
+    country: IL
+    region: US
+    provider_type: direct
+    compliance: [SOC2]
+    models:
+      jamba-mini:
+        cost_class: VeryLow
+        typical_latency_ms: 1500
+        quality: 0.78
+        context_tokens: 256000
+        max_output_tokens: 4096
+        capabilities: [tool_use, structured_output, multilingual]
+        architecture: hybrid
+        total_params_b: 52
+        active_params_b: 12
+        pricing:
+          input_per_m: 0.20
+          output_per_m: 0.40
+
+      jamba-large:
+        cost_class: Medium
+        typical_latency_ms: 3000
+        quality: 0.88
+        context_tokens: 256000
+        max_output_tokens: 4096
+        capabilities: [tool_use, structured_output, code, reasoning, multilingual]
+        architecture: hybrid
+        total_params_b: 398
+        active_params_b: 94
+        pricing:
+          input_per_m: 2.00
+          output_per_m: 8.00
+
+  # ===========================================================================
+  # EUROPEAN PROVIDERS (GDPR-compliant)
+  # ===========================================================================
+
+  mistral:
+    env_key: MISTRAL_API_KEY
+    key_url: https://console.mistral.ai/api-keys
+    api_url: https://api.mistral.ai/v1
+    country: FR
+    region: EU
+    provider_type: direct
+    compliance: [GDPR]
+    models:
+      mistral-tiny:
+        cost_class: VeryLow
+        typical_latency_ms: 1200
+        quality: 0.65
+        context_tokens: 32000
+        max_output_tokens: 4096
+        capabilities: [multilingual]
+        architecture: dense
+        total_params_b: 7
+        pricing:
+          input_per_m: 0.25
+          output_per_m: 0.25
+
+      mistral-small-latest:
+        cost_class: VeryLow
+        typical_latency_ms: 1500
+        quality: 0.72
+        context_tokens: 32000
+        max_output_tokens: 4096
+        capabilities: [tool_use, structured_output, multilingual]
+        architecture: dense
+        total_params_b: 22
+        pricing:
+          input_per_m: 0.10
+          output_per_m: 0.30
+
+      mistral-medium-latest:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.82
+        context_tokens: 32000
+        max_output_tokens: 8192
+        capabilities: [tool_use, structured_output, code, multilingual]
+        architecture: moe
+        pricing:
+          input_per_m: 0.40
+          output_per_m: 1.20
+
+      mistral-large-latest:
+        cost_class: Medium
+        typical_latency_ms: 4000
+        quality: 0.88
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 123
+        pricing:
+          input_per_m: 2.00
+          output_per_m: 6.00
+
+      codestral-latest:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.85
+        context_tokens: 32000
+        max_output_tokens: 8192
+        capabilities: [code]
+        architecture: dense
+        total_params_b: 22
+        pricing:
+          input_per_m: 0.30
+          output_per_m: 0.90
+
+      pixtral-large-latest:
+        cost_class: Medium
+        typical_latency_ms: 3500
+        quality: 0.86
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, code, multilingual]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        total_params_b: 124
+        pricing:
+          input_per_m: 2.00
+          output_per_m: 6.00
+
+  apertus:
+    env_key: APERTUS_API_KEY
+    key_url: https://apertus.ai/
+    api_url: https://api.apertus.ai/v1
+    country: CH
+    region: CH
+    provider_type: direct
+    compliance: [GDPR]
+    models:
+      apertus-v1:
+        cost_class: Medium
+        typical_latency_ms: 4000
+        quality: 0.85
+        context_tokens: 32000
+        max_output_tokens: 4096
+        capabilities: [multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 9.00
+
+  # ===========================================================================
+  # CHINESE PROVIDERS (Data stays in China)
+  # ===========================================================================
+
+  qwen:
+    env_key: QWEN_API_KEY
+    key_url: https://dashscope.console.aliyun.com/apiKey
+    api_url: https://dashscope.aliyuncs.com/api/v1
+    country: CN
+    region: CN
+    provider_type: direct
+    models:
+      qwen-turbo:
+        cost_class: VeryLow
+        typical_latency_ms: 1500
+        quality: 0.70
+        context_tokens: 8000
+        max_output_tokens: 2048
+        capabilities: [multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.14
+          output_per_m: 0.28
+
+      qwen-plus:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.80
+        context_tokens: 32000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.57
+          output_per_m: 1.70
+
+      qwen-max:
+        cost_class: Medium
+        typical_latency_ms: 4000
+        quality: 0.88
+        context_tokens: 32000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: moe
+        pricing:
+          input_per_m: 2.85
+          output_per_m: 8.54
+
+      qwen2.5-72b-instruct:
+        cost_class: Medium
+        typical_latency_ms: 3500
+        quality: 0.90
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 72
+        pricing:
+          input_per_m: 0.57
+          output_per_m: 1.70
+
+      qwen3-235b-instruct:
+        cost_class: Medium
+        typical_latency_ms: 4000
+        quality: 0.94
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: moe
+        total_params_b: 235
+        active_params_b: 22
+        thinking_mode: true
+        pricing:
+          input_per_m: 1.70
+          output_per_m: 6.80
+
+  baidu:
+    env_key: BAIDU_API_KEY
+    env_key_secondary: BAIDU_SECRET_KEY
+    key_url: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application
+    api_url: https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop
+    country: CN
+    region: CN
+    provider_type: direct
+    models:
+      ernie-bot:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.80
+        context_tokens: 8000
+        max_output_tokens: 2048
+        capabilities: [multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 1.20
+          output_per_m: 1.20
+
+      ernie-bot-turbo:
+        cost_class: VeryLow
+        typical_latency_ms: 1500
+        quality: 0.75
+        context_tokens: 8000
+        max_output_tokens: 2048
+        capabilities: [multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.57
+          output_per_m: 0.57
+
+      ernie-bot-4:
+        cost_class: Medium
+        typical_latency_ms: 4000
+        quality: 0.88
+        context_tokens: 8000
+        max_output_tokens: 4096
+        capabilities: [tool_use, reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 8.54
+          output_per_m: 17.10
+
+  zhipu:
+    env_key: ZHIPU_API_KEY
+    key_url: https://open.bigmodel.cn/usercenter/apikeys
+    api_url: https://open.bigmodel.cn/api/paas/v4
+    country: CN
+    region: CN
+    provider_type: direct
+    models:
+      glm-4:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.82
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 1.42
+          output_per_m: 1.42
+
+      glm-4-plus:
+        cost_class: Medium
+        typical_latency_ms: 3000
+        quality: 0.88
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 7.10
+          output_per_m: 7.10
+
+      glm-4.7-flash:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.87
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 30
+        open_weights: true
+        publisher: Zhipu AI
+        family: GLM
+        tags: [agentic, coding, open_source, long_horizon]
+        notes: "30B-class SOTA; optimized for agentic coding, long-horizon planning, and tool collaboration."
+
+      glm-4v:
+        cost_class: Medium
+        typical_latency_ms: 3500
+        quality: 0.85
+        context_tokens: 8000
+        max_output_tokens: 4096
+        capabilities: [vision, multilingual]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 7.10
+          output_per_m: 7.10
+
+  deepseek:
+    env_key: DEEPSEEK_API_KEY
+    key_url: https://platform.deepseek.com/api_keys
+    api_url: https://api.deepseek.com/v1
+    country: CN
+    region: CN
+    provider_type: direct
+    models:
+      deepseek-chat:
+        cost_class: VeryLow
+        typical_latency_ms: 1500
+        quality: 0.75
+        context_tokens: 64000
+        max_output_tokens: 8192
+        capabilities: [code, reasoning]
+        architecture: moe
+        total_params_b: 236
+        active_params_b: 21
+        pricing:
+          input_per_m: 0.14
+          output_per_m: 0.28
+
+      deepseek-coder:
+        cost_class: VeryLow
+        typical_latency_ms: 1500
+        quality: 0.82
+        context_tokens: 64000
+        max_output_tokens: 8192
+        capabilities: [code]
+        architecture: moe
+        pricing:
+          input_per_m: 0.14
+          output_per_m: 0.28
+
+      deepseek-r1:
+        cost_class: Low
+        typical_latency_ms: 5000
+        quality: 0.92
+        context_tokens: 64000
+        max_output_tokens: 8192
+        capabilities: [code, reasoning]
+        architecture: moe
+        total_params_b: 671
+        active_params_b: 37
+        thinking_mode: true
+        pricing:
+          input_per_m: 0.55
+          output_per_m: 2.19
+
+      deepseek-v3.2:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.94
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: moe
+        total_params_b: 685
+        active_params_b: 37
+        agentic:
+          max_parallel_agents: 10
+          supports_orchestration: true
+        pricing:
+          input_per_m: 0.27
+          output_per_m: 1.10
+
+  kimi:
+    env_key: KIMI_API_KEY
+    key_url: https://platform.moonshot.cn/console/api-keys
+    api_url: https://api.moonshot.cn/v1
+    country: CN
+    region: CN
+    provider_type: direct
+    models:
+      # Legacy Moonshot v1 models
+      moonshot-v1-8k:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.80
+        context_tokens: 8000
+        max_output_tokens: 4096
+        capabilities: [multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 1.70
+          output_per_m: 1.70
+
+      moonshot-v1-32k:
+        cost_class: Medium
+        typical_latency_ms: 3000
+        quality: 0.85
+        context_tokens: 32000
+        max_output_tokens: 4096
+        capabilities: [reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 3.40
+          output_per_m: 3.40
+
+      moonshot-v1-128k:
+        cost_class: High
+        typical_latency_ms: 5000
+        quality: 0.88
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 8.54
+          output_per_m: 8.54
+
+      # Kimi K2.5 - Latest flagship model (Jan 2026)
+      # 1T parameter MoE with 32B active, native multimodal
+      kimi-k2.5:
+        cost_class: Low
+        typical_latency_ms: 3000
+        quality: 0.94
+        context_tokens: 262144
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, reasoning, code, multilingual, prompt_caching]
+        architecture: moe
+        total_params_b: 1000
+        active_params_b: 32
+        native_multimodal: true
+        modalities: [text, image, video]
+        agentic:
+          max_parallel_agents: 100
+          supports_orchestration: true
+        pricing:
+          input_per_m: 0.50
+          output_per_m: 2.80
+        publisher: Moonshot AI
+        family: Kimi
+        tags: [ui, frontend, long_context, prompt_caching]
+        notes: "Native multimodal; strong visual coding and agentic tool-calling. Built on K2 with ~15T mixed visual/text tokens."
+
+      # Kimi K2.5 with extended thinking/reasoning mode
+      kimi-k2.5-thinking:
+        cost_class: Medium
+        typical_latency_ms: 8000
+        quality: 0.96
+        context_tokens: 262144
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, reasoning, code, multilingual, prompt_caching]
+        architecture: moe
+        total_params_b: 1000
+        active_params_b: 32
+        native_multimodal: true
+        modalities: [text, image, video]
+        thinking_mode: true
+        agentic:
+          max_parallel_agents: 100
+          supports_orchestration: true
+        pricing:
+          input_per_m: 0.50
+          output_per_m: 2.80
+        publisher: Moonshot AI
+        family: Kimi
+        tags: [ui, frontend, long_context, prompt_caching, thinking]
+        notes: "Thinking variant; native multimodal with strong visual coding and agentic tool-calling."
+
+      # Kimi K2 base instruct model
+      kimi-k2-instruct:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.90
+        context_tokens: 131072
+        max_output_tokens: 8192
+        capabilities: [tool_use, reasoning, code, multilingual]
+        architecture: moe
+        total_params_b: 1000
+        active_params_b: 32
+        pricing:
+          input_per_m: 0.40
+          output_per_m: 2.00
+
+  minmax:
+    env_key: MINMAX_API_KEY
+    key_url: https://platform.minimaxi.com/user-center/basic-information/interface-key
+    api_url: https://api.minimax.chat/v1
+    country: CN
+    region: CN
+    provider_type: direct
+    models:
+      abab5.5-chat:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.75
+        context_tokens: 8000
+        max_output_tokens: 2048
+        capabilities: [multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 2.13
+          output_per_m: 2.13
+
+      abab6-chat:
+        cost_class: Medium
+        typical_latency_ms: 3000
+        quality: 0.82
+        context_tokens: 8000
+        max_output_tokens: 4096
+        capabilities: [tool_use, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 4.26
+          output_per_m: 4.26
+
+      abab7-chat:
+        cost_class: Medium
+        typical_latency_ms: 3500
+        quality: 0.88
+        context_tokens: 245760
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, reasoning, multilingual]
+        architecture: moe
+        native_multimodal: true
+        pricing:
+          input_per_m: 0.71
+          output_per_m: 0.71
+
+      minimax-m2-her:
+        cost_class: VeryLow
+        typical_latency_ms: 1500
+        quality: 0.80
+        context_tokens: 65536
+        max_output_tokens: 8192
+        capabilities: [multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.30
+          output_per_m: 1.20
+        publisher: MiniMax
+        family: M2
+        tags: [roleplay, dialogue, storytelling, companion]
+        notes: "Dialogue-first model for immersive roleplay and character-driven chat with rich message roles."
+
+      minimax-m2.1:
+        cost_class: VeryLow
+        typical_latency_ms: 1200
+        quality: 0.88
+        context_tokens: 196608
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: moe
+        active_params_b: 10
+        thinking_mode: true
+        pricing:
+          input_per_m: 0.27
+          output_per_m: 1.10
+        publisher: MiniMax
+        family: M2
+        tags: [agentic, coding, multilingual]
+        benchmarks:
+          multi_swe_bench: 49.4
+          swe_bench_multilingual: 72.5
+        notes: "Lightweight coding model optimized for agentic workflows; preserve reasoning between turns for best performance."
+
+      MiniMax-Text-01:
+        cost_class: Low
+        typical_latency_ms: 4000
+        quality: 0.87
+        context_tokens: 1000000
+        max_output_tokens: 8192
+        capabilities: [tool_use, structured_output, multilingual]
+        architecture: moe
+        pricing:
+          input_per_m: 0.21
+          output_per_m: 0.70
+        publisher: MiniMax
+        family: M2
+        tags: [long_context, multilingual]
+        notes: "Flagship MiniMax model with 1M context; OpenAI-compatible endpoint."
+
+  arcee:
+    env_key: ARCEE_API_KEY
+    key_url: https://app.arcee.ai
+    api_url: https://api.arcee.ai/v2
+    country: US
+    region: US
+    compliance: [SOC2]
+    provider_type: direct
+    models:
+      trinity-large-preview:
+        cost_class: Medium
+        typical_latency_ms: 3100
+        quality: 0.86
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, structured_output, code]
+        architecture: dense
+        pricing:
+          input_per_m: 0.50
+          output_per_m: 1.50
+        publisher: Arcee AI
+        family: Trinity
+        tags: [tool_calling, efficient, us]
+        notes: "Small, efficient model for structured tasks and tool-calling; strong quality-per-cost ratio."
+
+  writer:
+    env_key: WRITER_API_KEY
+    key_url: https://dev.writer.com
+    api_url: https://api.writer.com/v1
+    country: US
+    region: US
+    compliance: [SOC2, GDPR]
+    provider_type: direct
+    models:
+      palmyra-x5:
+        cost_class: Low
+        typical_latency_ms: 4200
+        quality: 0.90
+        context_tokens: 1040000
+        max_output_tokens: 8192
+        capabilities: [tool_use, structured_output, code, reasoning, content_generation, business_acumen]
+        architecture: hybrid
+        pricing:
+          input_per_m: 0.60
+          output_per_m: 6.00
+        publisher: Writer
+        family: Palmyra
+        tags: [enterprise, agentic, long_context, business_writing]
+        notes: "Enterprise model with hybrid attention and 1M context; optimized for business writing, stakeholder summaries, and large-scale agent memory."
+
+  doubao:
+    env_key: DOUBAO_API_KEY
+    key_url: https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey
+    api_url: https://ark.cn-beijing.volces.com/api/v3
+    country: CN
+    region: CN
+    provider_type: direct
+    models:
+      doubao-1.5-pro:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.90
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, code, reasoning, multilingual]
+        architecture: moe
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.17
+          output_per_m: 0.17
+
+      doubao-seed-code:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.92
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [code, reasoning]
+        architecture: moe
+        agentic:
+          max_parallel_agents: 20
+          supports_orchestration: true
+        pricing:
+          input_per_m: 0.25
+          output_per_m: 0.50
+
+      doubao-lite:
+        cost_class: VeryLow
+        typical_latency_ms: 1000
+        quality: 0.72
+        context_tokens: 32000
+        max_output_tokens: 4096
+        capabilities: [multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.04
+          output_per_m: 0.04
+
+  yi:
+    env_key: YI_API_KEY
+    key_url: https://platform.lingyiwanwu.com/apikeys
+    api_url: https://api.lingyiwanwu.com/v1
+    country: CN
+    region: CN
+    provider_type: direct
+    models:
+      yi-lightning:
+        cost_class: VeryLow
+        typical_latency_ms: 1200
+        quality: 0.82
+        context_tokens: 16000
+        max_output_tokens: 4096
+        capabilities: [code, reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.14
+          output_per_m: 0.14
+
+      yi-large:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.88
+        context_tokens: 200000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 2.85
+          output_per_m: 2.85
+
+      yi-vision:
+        cost_class: Low
+        typical_latency_ms: 3000
+        quality: 0.85
+        context_tokens: 16000
+        max_output_tokens: 4096
+        capabilities: [vision, multilingual]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.85
+          output_per_m: 0.85
+
+  baichuan:
+    env_key: BAICHUAN_API_KEY
+    key_url: https://platform.baichuan-ai.com/console/apikey
+    api_url: https://api.baichuan-ai.com/v1
+    country: CN
+    region: CN
+    provider_type: direct
+    models:
+      baichuan-4:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.86
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 1.42
+          output_per_m: 1.42
+
+      baichuan-m1:
+        cost_class: Medium
+        typical_latency_ms: 3000
+        quality: 0.90
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, code, reasoning, multilingual]
+        architecture: moe
+        native_multimodal: true
+        modalities: [text, image]
+        thinking_mode: true
+        pricing:
+          input_per_m: 2.85
+          output_per_m: 5.70
+
+  stepfun:
+    env_key: STEPFUN_API_KEY
+    key_url: https://platform.stepfun.com/interface-key
+    api_url: https://api.stepfun.com/v1
+    country: CN
+    region: CN
+    provider_type: direct
+    models:
+      step-2:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.90
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, reasoning, multilingual]
+        architecture: moe
+        total_params_b: 1000
+        pricing:
+          input_per_m: 0.98
+          output_per_m: 3.90
+
+      step-3:
+        cost_class: Medium
+        typical_latency_ms: 3000
+        quality: 0.94
+        context_tokens: 256000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, code, reasoning, multilingual]
+        architecture: moe
+        total_params_b: 1500
+        native_multimodal: true
+        modalities: [text, image, video]
+        agentic:
+          max_parallel_agents: 50
+          supports_orchestration: true
+        pricing:
+          input_per_m: 1.95
+          output_per_m: 7.80
+
+      step-3-vl-10b:
+        cost_class: VeryLow
+        typical_latency_ms: 1500
+        quality: 0.85
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [vision, multilingual]
+        architecture: dense
+        total_params_b: 10
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.20
+          output_per_m: 0.60
+
+  # ===========================================================================
+  # AGGREGATORS (Access multiple models through single API)
+  # Note: These providers route to underlying models, adding small latency overhead
+  # ===========================================================================
+
+  openrouter:
+    env_key: OPENROUTER_API_KEY
+    key_url: https://openrouter.ai/keys
+    api_url: https://openrouter.ai/api/v1
+    country: US
+    region: US
+    provider_type: aggregator
+    models:
+      anthropic/claude-3-5-haiku-20241022:
+        cost_class: VeryLow
+        typical_latency_ms: 1700
+        quality: 0.75
+        context_tokens: 200000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 1.00
+          output_per_m: 5.00
+
+      anthropic/claude-sonnet-4:
+        cost_class: Medium
+        typical_latency_ms: 4200
+        quality: 0.92
+        context_tokens: 200000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        thinking_mode: true
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 15.00
+
+      arcee/trinity-large-preview:
+        cost_class: Medium
+        typical_latency_ms: 3000
+        quality: 0.86
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, structured_output, code]
+        architecture: dense
+        publisher: Arcee
+        family: Trinity
+        tags: [tool_calling, regulated, us]
+        notes: "US-based preview model; improved tool-calling; strong domestic option for regulated use."
+
+      minimax/minimax-m2-her:
+        cost_class: VeryLow
+        typical_latency_ms: 1600
+        quality: 0.80
+        context_tokens: 65536
+        max_output_tokens: 8192
+        capabilities: [multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.30
+          output_per_m: 1.20
+        publisher: MiniMax
+        family: M2
+        tags: [roleplay, dialogue, storytelling, companion]
+        notes: "Dialogue-first model for immersive roleplay and character-driven chat with rich message roles."
+
+      minimax/minimax-m2.1:
+        cost_class: VeryLow
+        typical_latency_ms: 1300
+        quality: 0.88
+        context_tokens: 196608
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: moe
+        active_params_b: 10
+        thinking_mode: true
+        pricing:
+          input_per_m: 0.27
+          output_per_m: 1.10
+        publisher: MiniMax
+        family: M2
+        tags: [agentic, coding, multilingual]
+        benchmarks:
+          multi_swe_bench: 49.4
+          swe_bench_multilingual: 72.5
+        notes: "Lightweight coding model optimized for agentic workflows; preserve reasoning between turns for best performance."
+
+      writer/palmyra-x5:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.90
+        context_tokens: 1040000
+        max_output_tokens: 8192
+        capabilities: [tool_use, structured_output, code, reasoning, content_generation, business_acumen]
+        architecture: hybrid
+        pricing:
+          input_per_m: 0.60
+          output_per_m: 6.00
+        publisher: Writer
+        family: Palmyra
+        tags: [enterprise, agentic, long_context, business_writing]
+        notes: "Enterprise-focused model with hybrid attention and 1M context; optimized for business writing and large-scale agent memory."
+
+      liquid/lfm-2.5-1.2b-thinking:free:
+        cost_class: VeryLow
+        typical_latency_ms: 800
+        quality: 0.70
+        context_tokens: 32768
+        max_output_tokens: 4096
+        capabilities: [reasoning]
+        architecture: dense
+        total_params_b: 1.2
+        thinking_mode: true
+        pricing:
+          input_per_m: 0.00
+          output_per_m: 0.00
+        publisher: LiquidAI
+        family: LFM
+        tags: [free, edge, rag, extraction]
+        notes: "Lightweight reasoning model optimized for agentic tasks and RAG; designed for edge devices."
+
+      z-ai/glm-4.7-flash:
+        cost_class: VeryLow
+        typical_latency_ms: 1800
+        quality: 0.87
+        context_tokens: 200000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 30
+        open_weights: true
+        pricing:
+          input_per_m: 0.07
+          output_per_m: 0.40
+        publisher: Z.AI
+        family: GLM
+        tags: [agentic, coding, open_source, long_horizon]
+        notes: "30B-class SOTA; optimized for agentic coding, long-horizon planning, and tool collaboration."
+
+      z-ai/glm-4.7:
+        cost_class: Low
+        typical_latency_ms: 2600
+        quality: 0.90
+        context_tokens: 202752
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        open_weights: true
+        pricing:
+          input_per_m: 0.40
+          output_per_m: 1.50
+        publisher: Z.AI
+        family: GLM
+        tags: [agentic, coding, reasoning]
+        notes: "Flagship model with improved programming and stable multi-step reasoning/execution; strong for agent tasks and front-end aesthetics."
+
+      mistralai/mistral-small-creative:
+        cost_class: VeryLow
+        typical_latency_ms: 900
+        quality: 0.78
+        context_tokens: 32768
+        max_output_tokens: 4096
+        capabilities: [multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.10
+          output_per_m: 0.30
+        publisher: Mistral
+        family: Mistral
+        tags: [creative, roleplay, narrative]
+        notes: "Experimental small model for creative writing, roleplay, and conversational agents."
+
+      allenai/olmo-3.1-32b-think:
+        cost_class: VeryLow
+        typical_latency_ms: 2200
+        quality: 0.90
+        context_tokens: 65536
+        max_output_tokens: 8192
+        capabilities: [reasoning, multilingual]
+        architecture: dense
+        total_params_b: 32
+        open_weights: true
+        pricing:
+          input_per_m: 0.15
+          output_per_m: 0.50
+        publisher: AllenAI
+        family: OLMo
+        license: Apache-2.0
+        tags: [open_source, reasoning, think]
+        notes: "Open model with refined reasoning behavior; built for deep multi-step logic and advanced instruction following."
+
+      xiaomi/mimo-v2-flash:
+        cost_class: VeryLow
+        typical_latency_ms: 2000
+        quality: 0.92
+        context_tokens: 262144
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: moe
+        total_params_b: 309
+        active_params_b: 15
+        thinking_mode: true
+        pricing:
+          input_per_m: 0.09
+          output_per_m: 0.29
+        publisher: Xiaomi
+        family: MiMo
+        tags: [open_source, reasoning, coding, agentic, long_context]
+        benchmarks:
+          swe_bench_verified: 1
+          swe_bench_multilingual: 1
+        notes: "MoE with hybrid attention and hybrid-thinking toggle; top open-source on SWE-bench Verified/Multilingual."
+
+      nvidia/nemotron-3-nano-30b-a3b:free:
+        cost_class: VeryLow
+        typical_latency_ms: 1200
+        quality: 0.84
+        context_tokens: 256000
+        max_output_tokens: 8192
+        capabilities: [tool_use, reasoning, multilingual]
+        architecture: moe
+        total_params_b: 30
+        active_params_b: 3
+        open_weights: true
+        pricing:
+          input_per_m: 0.00
+          output_per_m: 0.00
+        publisher: NVIDIA
+        family: Nemotron
+        tags: [open_source, free, agentic, moe]
+        notes: "Free endpoint logs prompts/outputs; not for sensitive data or production. Open weights, datasets, and recipes."
+
+      openai/gpt-5.2-pro:
+        cost_class: VeryHigh
+        typical_latency_ms: 9000
+        quality: 0.99
+        context_tokens: 400000
+        max_output_tokens: 32768
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        thinking_mode: true
+        pricing:
+          input_per_m: 21.00
+          output_per_m: 168.00
+        publisher: OpenAI
+        family: GPT
+        tags: [agentic, coding, long_context, high_accuracy]
+        notes: "Most advanced OpenAI model; improved agentic coding and long-context accuracy. Supports test-time routing and user-specified reasoning effort. Web search priced separately."
+
+      mistralai/devstral-2512:
+        cost_class: VeryLow
+        typical_latency_ms: 2200
+        quality: 0.92
+        context_tokens: 262144
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 123
+        open_weights: true
+        pricing:
+          input_per_m: 0.05
+          output_per_m: 0.22
+        publisher: Mistral
+        family: Devstral
+        license: "Modified MIT"
+        tags: [agentic, coding, open_source, long_context]
+        notes: "Open-source coding model for agentic workflows; tuned for multi-file changes and architecture-level context."
+
+      sourceful/riverflow-v2-max-preview:
+        cost_class: VeryLow
+        typical_latency_ms: 1800
+        quality: 0.86
+        context_tokens: 8192
+        max_output_tokens: 4096
+        capabilities: [image_generation]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.00
+          output_per_m: 0.00
+        publisher: Sourceful
+        family: Riverflow
+        beta: true
+        tags: [image_gen, preview]
+        notes: "Unified text-to-image and image-to-image. $0.075 per output image; 4.5MB request limit (prefer image URLs)."
+
+      relace/relace-search:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.88
+        context_tokens: 256000
+        max_output_tokens: 8192
+        capabilities: [tool_use, reasoning, structured_output]
+        architecture: dense
+        pricing:
+          input_per_m: 1.00
+          output_per_m: 3.00
+        publisher: Relace
+        family: Relace
+        tags: [search, agent, subagent, codebase]
+        notes: "Agentic search model; uses parallel file/grep tools. Requires harness to parse and hand off results to an oracle agent."
+
+      black-forest-labs/flux.2-klein-4b:
+        cost_class: VeryLow
+        typical_latency_ms: 1200
+        quality: 0.86
+        context_tokens: 40960
+        max_output_tokens: 4096
+        capabilities: [image_generation]
+        architecture: dense
+        total_params_b: 4
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.00
+          output_per_m: 0.00
+        publisher: Black Forest Labs
+        family: FLUX
+        tags: [image_gen, fast, low_cost]
+        notes: "Image pricing per megapixel ($0.014 first MP, $0.001 each additional). Fastest/cheapest FLUX.2 variant."
+
+      openai/gpt-5.2-codex:
+        cost_class: Medium
+        typical_latency_ms: 3200
+        quality: 0.97
+        context_tokens: 400000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        thinking_mode: true
+        pricing:
+          input_per_m: 1.75
+          output_per_m: 14.00
+        publisher: OpenAI
+        family: GPT
+        tags: [agentic, coding, long_horizon, code_review]
+        notes: "Agentic coding model optimized for software engineering; supports adjustable reasoning.effort and structured code review. Web search priced separately."
+
+      bytedance-seed/seedream-4.5:
+        cost_class: VeryLow
+        typical_latency_ms: 2000
+        quality: 0.88
+        context_tokens: 4096
+        max_output_tokens: 4096
+        capabilities: [image_generation]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.00
+          output_per_m: 0.00
+        publisher: ByteDance Seed
+        family: Seedream
+        tags: [image_gen, editing, composition]
+        notes: "Image pricing $0.04 per output image; improved editing consistency and multi-image composition."
+
+      bytedance-seed/seed-1.6:
+        cost_class: Low
+        typical_latency_ms: 2400
+        quality: 0.90
+        context_tokens: 262144
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: moe
+        native_multimodal: true
+        modalities: [text, image, video, audio]
+        thinking_mode: true
+        pricing:
+          input_per_m: 0.25
+          output_per_m: 2.00
+        publisher: ByteDance Seed
+        family: Seed
+        tags: [general, multimodal, long_context]
+        notes: "General-purpose multimodal model with adaptive deep thinking and 256K context."
+
+      openai/gpt-audio:
+        cost_class: Medium
+        typical_latency_ms: 2200
+        quality: 0.88
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [audio, tool_use, structured_output, multilingual]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, audio]
+        pricing:
+          input_per_m: 2.50
+          output_per_m: 10.00
+        publisher: OpenAI
+        family: GPT
+        tags: [audio, speech]
+        notes: "Audio model with upgraded decoder for more natural voices; audio tokens priced separately."
+
+      openai/gpt-audio-mini:
+        cost_class: Low
+        typical_latency_ms: 1500
+        quality: 0.80
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [audio, tool_use, structured_output, multilingual]
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, audio]
+        pricing:
+          input_per_m: 0.60
+          output_per_m: 2.40
+        publisher: OpenAI
+        family: GPT
+        tags: [audio, speech, low_cost]
+        notes: "Cost-efficient audio model with upgraded decoder; audio tokens priced separately."
+
+      openai/gpt-4:
+        cost_class: Medium
+        typical_latency_ms: 5200
+        quality: 0.90
+        context_tokens: 8192
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 30.00
+          output_per_m: 60.00
+
+      openai/gpt-4o:
+        cost_class: Low
+        typical_latency_ms: 2200
+        quality: 0.90
+        context_tokens: 128000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        native_multimodal: true
+        pricing:
+          input_per_m: 2.50
+          output_per_m: 10.00
+
+      meta-llama/llama-3.1-405b-instruct:
+        cost_class: Low
+        typical_latency_ms: 3000
+        quality: 0.88
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 405
+        pricing:
+          input_per_m: 2.70
+          output_per_m: 2.70
+
+      meta-llama/llama-4-scout:
+        cost_class: Low
+        typical_latency_ms: 3500
+        quality: 0.92
+        context_tokens: 10000000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: moe
+        total_params_b: 109
+        active_params_b: 17
+        pricing:
+          input_per_m: 0.15
+          output_per_m: 0.60
+
+      meta-llama/llama-4-maverick:
+        cost_class: Medium
+        typical_latency_ms: 4000
+        quality: 0.94
+        context_tokens: 1000000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, code, reasoning, multilingual]
+        architecture: moe
+        total_params_b: 400
+        active_params_b: 17
+        native_multimodal: true
+        pricing:
+          input_per_m: 0.50
+          output_per_m: 2.00
+
+      moonshotai/kimi-k2.5:
+        cost_class: Low
+        typical_latency_ms: 3200
+        quality: 0.94
+        context_tokens: 262144
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, reasoning, code, multilingual, prompt_caching]
+        architecture: moe
+        total_params_b: 1000
+        active_params_b: 32
+        native_multimodal: true
+        agentic:
+          max_parallel_agents: 100
+          supports_orchestration: true
+        pricing:
+          input_per_m: 0.50
+          output_per_m: 2.80
+        publisher: Moonshot AI
+        family: Kimi
+        tags: [ui, frontend, long_context, prompt_caching]
+        notes: "Native multimodal; strong visual coding and agentic tool-calling. Built on K2 with ~15T mixed visual/text tokens."
+
+      deepseek/deepseek-r1:
+        cost_class: Low
+        typical_latency_ms: 5200
+        quality: 0.92
+        context_tokens: 64000
+        max_output_tokens: 8192
+        capabilities: [code, reasoning]
+        architecture: moe
+        thinking_mode: true
+        pricing:
+          input_per_m: 0.55
+          output_per_m: 2.19
+
+      google/gemini-3-pro:
+        cost_class: Medium
+        typical_latency_ms: 2700
+        quality: 0.96
+        context_tokens: 2000000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: moe
+        native_multimodal: true
+        modalities: [text, image, video, audio]
+        thinking_mode: true
+        pricing:
+          input_per_m: 2.00
+          output_per_m: 8.00
+
+      google/gemini-3-flash-preview:
+        cost_class: VeryLow
+        typical_latency_ms: 1000
+        quality: 0.90
+        context_tokens: 1050000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual, audio, prompt_caching]
+        architecture: moe
+        native_multimodal: true
+        modalities: [text, image, video, audio]
+        thinking_mode: true
+        pricing:
+          input_per_m: 0.50
+          output_per_m: 3.00
+        publisher: Google
+        family: Gemini
+        beta: true
+        tags: [agentic, coding, long_context, prompt_caching, low_latency]
+        notes: "Preview model; high-speed reasoning and tool use with 1.05M context. Audio input priced separately."
+
+      google/gemini-3-pro-preview:
+        cost_class: High
+        typical_latency_ms: 3300
+        quality: 0.97
+        context_tokens: 1050000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual, audio, prompt_caching]
+        architecture: moe
+        native_multimodal: true
+        modalities: [text, image, video, audio]
+        thinking_mode: true
+        pricing:
+          input_per_m: 2.00
+          output_per_m: 12.00
+        publisher: Google
+        family: Gemini
+        beta: true
+        tags: [agentic, coding, long_context, multimodal]
+        notes: "Preview flagship model; strong multimodal reasoning and long-horizon planning. Audio input priced separately."
+
+  groq:
+    env_key: GROQ_API_KEY
+    key_url: https://console.groq.com/keys
+    api_url: https://api.groq.com/openai/v1
+    country: US
+    region: US
+    provider_type: aggregator
+    models:
+      # Groq specializes in ultra-fast inference using custom LPU hardware
+      llama-3.3-70b-versatile:
+        cost_class: VeryLow
+        typical_latency_ms: 300
+        quality: 0.86
+        context_tokens: 128000
+        max_output_tokens: 32768
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 70
+        pricing:
+          input_per_m: 0.59
+          output_per_m: 0.79
+
+      llama-3.1-8b-instant:
+        cost_class: VeryLow
+        typical_latency_ms: 100
+        quality: 0.72
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code]
+        architecture: dense
+        total_params_b: 8
+        pricing:
+          input_per_m: 0.05
+          output_per_m: 0.08
+
+      mixtral-8x7b-32768:
+        cost_class: VeryLow
+        typical_latency_ms: 200
+        quality: 0.80
+        context_tokens: 32768
+        max_output_tokens: 32768
+        capabilities: [tool_use, code, multilingual]
+        architecture: moe
+        total_params_b: 46.7
+        active_params_b: 12.9
+        pricing:
+          input_per_m: 0.24
+          output_per_m: 0.24
+
+      gemma2-9b-it:
+        cost_class: VeryLow
+        typical_latency_ms: 150
+        quality: 0.75
+        context_tokens: 8192
+        max_output_tokens: 8192
+        capabilities: [tool_use]
+        architecture: dense
+        total_params_b: 9
+        pricing:
+          input_per_m: 0.20
+          output_per_m: 0.20
+
+      deepseek-r1-distill-llama-70b:
+        cost_class: VeryLow
+        typical_latency_ms: 400
+        quality: 0.88
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [code, reasoning]
+        architecture: dense
+        total_params_b: 70
+        thinking_mode: true
+        pricing:
+          input_per_m: 0.75
+          output_per_m: 0.99
+
+  together:
+    env_key: TOGETHER_API_KEY
+    key_url: https://api.together.xyz/settings/api-keys
+    api_url: https://api.together.xyz/v1
+    country: US
+    region: US
+    provider_type: aggregator
+    models:
+      meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo:
+        cost_class: Low
+        typical_latency_ms: 2000
+        quality: 0.88
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 405
+        pricing:
+          input_per_m: 3.50
+          output_per_m: 3.50
+
+      meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo:
+        cost_class: VeryLow
+        typical_latency_ms: 1000
+        quality: 0.84
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 70
+        pricing:
+          input_per_m: 0.88
+          output_per_m: 0.88
+
+      mistralai/Mixtral-8x22B-Instruct-v0.1:
+        cost_class: Low
+        typical_latency_ms: 1500
+        quality: 0.86
+        context_tokens: 65536
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, multilingual]
+        architecture: moe
+        total_params_b: 141
+        active_params_b: 39
+        pricing:
+          input_per_m: 1.20
+          output_per_m: 1.20
+
+      Qwen/Qwen2.5-72B-Instruct-Turbo:
+        cost_class: Low
+        typical_latency_ms: 1200
+        quality: 0.90
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 72
+        pricing:
+          input_per_m: 1.20
+          output_per_m: 1.20
+
+      deepseek-ai/DeepSeek-R1:
+        cost_class: Low
+        typical_latency_ms: 3000
+        quality: 0.92
+        context_tokens: 64000
+        max_output_tokens: 8192
+        capabilities: [code, reasoning]
+        architecture: moe
+        total_params_b: 671
+        active_params_b: 37
+        thinking_mode: true
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 7.00
+
+      moonshotai/Kimi-K2.5:
+        cost_class: Low
+        typical_latency_ms: 3200
+        quality: 0.94
+        context_tokens: 262144
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, reasoning, code, multilingual, prompt_caching]
+        architecture: moe
+        total_params_b: 1000
+        active_params_b: 32
+        native_multimodal: true
+        agentic:
+          max_parallel_agents: 100
+          supports_orchestration: true
+        pricing:
+          input_per_m: 0.50
+          output_per_m: 2.80
+        publisher: Moonshot AI
+        family: Kimi
+        tags: [ui, frontend, long_context, prompt_caching]
+        notes: "Native multimodal; strong visual coding and agentic tool-calling. Built on K2 with ~15T mixed visual/text tokens."
+
+  fireworks:
+    env_key: FIREWORKS_API_KEY
+    key_url: https://fireworks.ai/api-keys
+    api_url: https://api.fireworks.ai/inference/v1
+    country: US
+    region: US
+    provider_type: aggregator
+    models:
+      accounts/fireworks/models/llama-v3p1-405b-instruct:
+        cost_class: Low
+        typical_latency_ms: 1800
+        quality: 0.88
+        context_tokens: 128000
+        max_output_tokens: 16384
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 405
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 3.00
+
+      accounts/fireworks/models/llama-v3p1-70b-instruct:
+        cost_class: VeryLow
+        typical_latency_ms: 800
+        quality: 0.84
+        context_tokens: 128000
+        max_output_tokens: 16384
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 70
+        pricing:
+          input_per_m: 0.90
+          output_per_m: 0.90
+
+      accounts/fireworks/models/mixtral-8x22b-instruct:
+        cost_class: Low
+        typical_latency_ms: 1200
+        quality: 0.86
+        context_tokens: 65536
+        max_output_tokens: 16384
+        capabilities: [tool_use, code, multilingual]
+        architecture: moe
+        total_params_b: 141
+        active_params_b: 39
+        pricing:
+          input_per_m: 1.20
+          output_per_m: 1.20
+
+      accounts/fireworks/models/qwen2p5-72b-instruct:
+        cost_class: Low
+        typical_latency_ms: 1000
+        quality: 0.90
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 72
+        pricing:
+          input_per_m: 0.90
+          output_per_m: 0.90
+
+      accounts/fireworks/models/deepseek-r1:
+        cost_class: Low
+        typical_latency_ms: 2500
+        quality: 0.92
+        context_tokens: 64000
+        max_output_tokens: 8192
+        capabilities: [code, reasoning]
+        architecture: moe
+        total_params_b: 671
+        active_params_b: 37
+        thinking_mode: true
+        pricing:
+          input_per_m: 2.00
+          output_per_m: 8.00
+
+  # Note: Amazon Bedrock and Azure OpenAI use different auth mechanisms
+  # They are listed here for completeness but require special handling
+
+  bedrock:
+    env_key: AWS_ACCESS_KEY_ID
+    env_key_secondary: AWS_SECRET_ACCESS_KEY
+    key_url: https://console.aws.amazon.com/iam/
+    api_url: https://bedrock-runtime.us-east-1.amazonaws.com
+    country: US
+    region: US
+    provider_type: aggregator
+    compliance: [SOC2, HIPAA]
+    models:
+      # Bedrock provides access to multiple providers through AWS
+      anthropic.claude-3-5-sonnet-20241022-v2:0:
+        cost_class: Low
+        typical_latency_ms: 3200
+        quality: 0.85
+        context_tokens: 200000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 15.00
+
+      anthropic.claude-3-5-haiku-20241022-v1:0:
+        cost_class: VeryLow
+        typical_latency_ms: 1700
+        quality: 0.75
+        context_tokens: 200000
+        max_output_tokens: 8192
+        capabilities: [tool_use, vision, structured_output, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.80
+          output_per_m: 4.00
+
+      meta.llama3-1-405b-instruct-v1:0:
+        cost_class: Low
+        typical_latency_ms: 3500
+        quality: 0.88
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 405
+        pricing:
+          input_per_m: 5.32
+          output_per_m: 16.00
+
+      cohere.command-r-plus-v1:0:
+        cost_class: Medium
+        typical_latency_ms: 3700
+        quality: 0.90
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, structured_output, reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 3.00
+          output_per_m: 15.00
+
+      ai21.jamba-1-5-large-v1:0:
+        cost_class: Medium
+        typical_latency_ms: 3200
+        quality: 0.88
+        context_tokens: 256000
+        max_output_tokens: 4096
+        capabilities: [tool_use, structured_output, code, reasoning, multilingual]
+        architecture: hybrid
+        pricing:
+          input_per_m: 2.00
+          output_per_m: 8.00
+
+  azure_openai:
+    env_key: AZURE_OPENAI_API_KEY
+    env_key_secondary: AZURE_OPENAI_ENDPOINT
+    key_url: https://portal.azure.com/#view/Microsoft_Azure_ProjectOxford/CognitiveServicesHub
+    api_url: https://{resource}.openai.azure.com/openai/deployments
+    country: US
+    region: US
+    provider_type: aggregator
+    compliance: [SOC2, HIPAA, GDPR]
+    models:
+      # Azure OpenAI models - actual deployment names vary by customer
+      gpt-4o:
+        cost_class: Low
+        typical_latency_ms: 2200
+        quality: 0.90
+        context_tokens: 128000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        native_multimodal: true
+        pricing:
+          input_per_m: 2.50
+          output_per_m: 10.00
+
+      gpt-4o-mini:
+        cost_class: VeryLow
+        typical_latency_ms: 1200
+        quality: 0.75
+        context_tokens: 128000
+        max_output_tokens: 16384
+        capabilities: [tool_use, vision, structured_output, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 0.15
+          output_per_m: 0.60
+
+      gpt-4-turbo:
+        cost_class: Medium
+        typical_latency_ms: 4200
+        quality: 0.92
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, vision, structured_output, code, reasoning, multilingual]
+        architecture: dense
+        pricing:
+          input_per_m: 10.00
+          output_per_m: 30.00
+
+  # ===========================================================================
+  # SEARCH PROVIDERS
+  # ===========================================================================
+
+  brave:
+    env_key: BRAVE_API_KEY
+    key_url: https://brave.com/search/api/
+    api_url: https://api.search.brave.com/res/v1
+    country: US
+    region: US
+    provider_type: direct
+    models:
+      # Brave Search API - web search service (not an LLM)
+      brave-web-search:
+        cost_class: VeryLow
+        typical_latency_ms: 500
+        quality: 0.85
+        context_tokens: 8192
+        capabilities: [web_search]
+        pricing:
+          input_per_m: 3.00  # ~$0.003 per query
+
+  tavily:
+    env_key: TAVILY_API_KEY
+    key_url: https://app.tavily.com/home
+    api_url: https://api.tavily.com
+    country: US
+    region: US
+    provider_type: direct
+    models:
+      # Tavily Search API - agent-oriented web search service
+      tavily-search:
+        cost_class: VeryLow
+        typical_latency_ms: 1200
+        quality: 0.88
+        context_tokens: 8192
+        capabilities: [web_search, structured_output]
+        pricing:
+          input_per_m: 1.00
+
+  # ===========================================================================
+  # OCR / DOCUMENT AI PROVIDERS
+  # ===========================================================================
+
+  # Note: OCR models are specialized vision-language models for document understanding.
+  # They extract text, tables, and structure from PDFs, scans, and images.
+  # Model type "ocr" indicates document processing capability.
+
+  # Mistral OCR 3 - Available through Mistral API
+  # Already defined under mistral provider, adding OCR-specific models here
+  mistral_ocr:
+    env_key: MISTRAL_API_KEY
+    key_url: https://console.mistral.ai/api-keys
+    api_url: https://api.mistral.ai/v1
+    country: FR
+    region: EU
+    provider_type: direct
+    compliance: [GDPR]
+    models:
+      # Mistral OCR 3 (December 2025) - Document AI at scale
+      # 74% win rate over OCR 2 on forms, handwriting, tables
+      mistral-ocr-2512:
+        cost_class: VeryLow
+        typical_latency_ms: 2000
+        quality: 0.92
+        context_tokens: 32000
+        max_output_tokens: 16384
+        capabilities: [vision, structured_output, multilingual]
+        type: ocr
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 2.00  # $2 per 1000 pages
+
+      # Alias for latest OCR model
+      mistral-ocr-latest:
+        cost_class: VeryLow
+        typical_latency_ms: 2000
+        quality: 0.92
+        context_tokens: 32000
+        max_output_tokens: 16384
+        capabilities: [vision, structured_output, multilingual]
+        type: ocr
+        architecture: dense
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 2.00
+
+  # DeepSeek OCR 2 - Available through DeepSeek API
+  deepseek_ocr:
+    env_key: DEEPSEEK_API_KEY
+    key_url: https://platform.deepseek.com/api_keys
+    api_url: https://api.deepseek.com/v1
+    country: CN
+    region: CN
+    provider_type: direct
+    models:
+      # DeepSeek-OCR 2 (January 2026) - Visual Causal Flow architecture
+      # 3B params with DeepEncoder V2 for semantic visual reasoning
+      # Human-like reading order, SOTA on document understanding
+      deepseek-ocr-2:
+        cost_class: VeryLow
+        typical_latency_ms: 1500
+        quality: 0.94
+        context_tokens: 128000
+        max_output_tokens: 8192
+        capabilities: [vision, structured_output, reasoning, multilingual]
+        type: ocr
+        architecture: dense
+        total_params_b: 3
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.14
+          output_per_m: 0.28
+
+  # LightOn OCR 2 - Available through Hugging Face or self-hosted
+  lighton:
+    env_key: HUGGINGFACE_API_KEY
+    key_url: https://huggingface.co/settings/tokens
+    api_url: https://api-inference.huggingface.co
+    country: FR
+    region: EU
+    provider_type: direct
+    compliance: [GDPR]
+    models:
+      # LightOnOCR-2-1B (January 2026) - Efficient document OCR
+      # 1B params, 9x smaller than competitors, SOTA on OlmOCR-Bench
+      # 5.71 pages/s on H100, ~493k pages/day, <$0.01 per 1000 pages
+      lightonocr-2-1b:
+        cost_class: VeryLow
+        typical_latency_ms: 175  # ~5.7 pages/s
+        quality: 0.93
+        context_tokens: 32000
+        max_output_tokens: 8192
+        capabilities: [vision, structured_output, multilingual]
+        type: ocr
+        architecture: dense
+        total_params_b: 1
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.01  # <$0.01 per 1000 pages
+
+      # With bounding box output for figures/images
+      lightonocr-2-1b-bbox:
+        cost_class: VeryLow
+        typical_latency_ms: 200
+        quality: 0.92
+        context_tokens: 32000
+        max_output_tokens: 8192
+        capabilities: [vision, structured_output, multilingual]
+        type: ocr
+        architecture: dense
+        total_params_b: 1
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.01
+
+  # ===========================================================================
+  # EMBEDDING & RERANKING PROVIDERS
+  # ===========================================================================
+
+  huggingface:
+    env_key: HUGGINGFACE_API_KEY
+    key_url: https://huggingface.co/settings/tokens
+    api_url: https://api-inference.huggingface.co
+    country: US
+    region: US
+    provider_type: direct
+    models:
+      # Qwen3-VL Embedding models (multimodal)
+      Alibaba-NLP/Qwen3-VL-Embedding-2B:
+        cost_class: Low
+        typical_latency_ms: 500
+        quality: 0.85
+        context_tokens: 32000
+        capabilities: [vision, multilingual]
+        type: embedding
+        dimensions: 2048
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.10
+
+      Alibaba-NLP/Qwen3-VL-Embedding-8B:
+        cost_class: Medium
+        typical_latency_ms: 1000
+        quality: 0.92
+        context_tokens: 32000
+        capabilities: [vision, multilingual]
+        type: embedding
+        dimensions: 4096
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.20
+
+      # Qwen3-VL Reranker models
+      Alibaba-NLP/Qwen3-VL-Reranker-2B:
+        cost_class: Low
+        typical_latency_ms: 300
+        quality: 0.88
+        context_tokens: 32000
+        capabilities: [vision, multilingual]
+        type: reranker
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.10
+
+      Alibaba-NLP/Qwen3-VL-Reranker-8B:
+        cost_class: Medium
+        typical_latency_ms: 600
+        quality: 0.94
+        context_tokens: 32000
+        capabilities: [vision, multilingual]
+        type: reranker
+        native_multimodal: true
+        modalities: [text, image]
+        pricing:
+          input_per_m: 0.20
+
+  # ===========================================================================
+  # LOCAL PROVIDERS (Full control, any jurisdiction)
+  # ===========================================================================
+
+  ollama:
+    env_key: OLLAMA_URL
+    key_url: https://ollama.ai/
+    api_url: http://localhost:11434
+    country: LOCAL
+    region: LOCAL
+    provider_type: direct
+    # Latency depends on hardware; these are estimates for decent GPU
+    models:
+      qwen2.5:0.5b:
+        cost_class: VeryLow
+        typical_latency_ms: 50
+        quality: 0.45
+        context_tokens: 32000
+        max_output_tokens: 8192
+        capabilities: [multilingual]
+        architecture: dense
+        total_params_b: 0.5
+
+      qwen2.5:1.5b:
+        cost_class: VeryLow
+        typical_latency_ms: 80
+        quality: 0.55
+        context_tokens: 32000
+        max_output_tokens: 8192
+        capabilities: [multilingual]
+        architecture: dense
+        total_params_b: 1.5
+
+      qwen2.5:7b:
+        cost_class: VeryLow
+        typical_latency_ms: 200
+        quality: 0.72
+        context_tokens: 32000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, multilingual]
+        architecture: dense
+        total_params_b: 7
+
+      qwen2.5:32b:
+        cost_class: VeryLow
+        typical_latency_ms: 800
+        quality: 0.85
+        context_tokens: 32000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 32
+
+      qwen2.5:72b:
+        cost_class: VeryLow
+        typical_latency_ms: 2000
+        quality: 0.90
+        context_tokens: 32000
+        max_output_tokens: 8192
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 72
+
+      llama3.2:1b:
+        cost_class: VeryLow
+        typical_latency_ms: 50
+        quality: 0.50
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: []
+        architecture: dense
+        total_params_b: 1
+
+      llama3.2:3b:
+        cost_class: VeryLow
+        typical_latency_ms: 100
+        quality: 0.62
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use]
+        architecture: dense
+        total_params_b: 3
+
+      llama3.1:8b:
+        cost_class: VeryLow
+        typical_latency_ms: 250
+        quality: 0.72
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code]
+        architecture: dense
+        total_params_b: 8
+
+      llama3.1:70b:
+        cost_class: VeryLow
+        typical_latency_ms: 1500
+        quality: 0.88
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, reasoning, multilingual]
+        architecture: dense
+        total_params_b: 70
+
+      mistral:7b:
+        cost_class: VeryLow
+        typical_latency_ms: 200
+        quality: 0.70
+        context_tokens: 32000
+        max_output_tokens: 4096
+        capabilities: [multilingual]
+        architecture: dense
+        total_params_b: 7
+
+      mixtral:8x7b:
+        cost_class: VeryLow
+        typical_latency_ms: 400
+        quality: 0.80
+        context_tokens: 32000
+        max_output_tokens: 4096
+        capabilities: [tool_use, code, multilingual]
+        architecture: moe
+        total_params_b: 46.7
+        active_params_b: 12.9
+
+      codellama:7b:
+        cost_class: VeryLow
+        typical_latency_ms: 200
+        quality: 0.75
+        context_tokens: 16000
+        max_output_tokens: 4096
+        capabilities: [code]
+        architecture: dense
+        total_params_b: 7
+
+      codellama:34b:
+        cost_class: VeryLow
+        typical_latency_ms: 800
+        quality: 0.85
+        context_tokens: 16000
+        max_output_tokens: 4096
+        capabilities: [code]
+        architecture: dense
+        total_params_b: 34
+
+      deepseek-coder:6.7b:
+        cost_class: VeryLow
+        typical_latency_ms: 200
+        quality: 0.78
+        context_tokens: 64000
+        max_output_tokens: 4096
+        capabilities: [code]
+        architecture: dense
+        total_params_b: 6.7
+
+      deepseek-coder:33b:
+        cost_class: VeryLow
+        typical_latency_ms: 600
+        quality: 0.88
+        context_tokens: 64000
+        max_output_tokens: 4096
+        capabilities: [code]
+        architecture: dense
+        total_params_b: 33
+
+      phi3:mini:
+        cost_class: VeryLow
+        typical_latency_ms: 80
+        quality: 0.65
+        context_tokens: 128000
+        max_output_tokens: 4096
+        capabilities: [code]
+        architecture: dense
+        total_params_b: 3.8
+
+      gemma2:2b:
+        cost_class: VeryLow
+        typical_latency_ms: 60
+        quality: 0.55
+        context_tokens: 8192
+        max_output_tokens: 4096
+        capabilities: []
+        architecture: dense
+        total_params_b: 2
+
+      gemma2:9b:
+        cost_class: VeryLow
+        typical_latency_ms: 250
+        quality: 0.75
+        context_tokens: 8192
+        max_output_tokens: 4096
+        capabilities: [tool_use]
+        architecture: dense
+        total_params_b: 9
+
+      gemma2:27b:
+        cost_class: VeryLow
+        typical_latency_ms: 600
+        quality: 0.85
+        context_tokens: 8192
+        max_output_tokens: 4096
+        capabilities: [tool_use, reasoning]
+        architecture: dense
+        total_params_b: 27
+
+      # Embedding models via Ollama
+      nomic-embed-text:
+        cost_class: VeryLow
+        typical_latency_ms: 50
+        quality: 0.80
+        context_tokens: 8192
+        capabilities: []
+        type: embedding
+        dimensions: 768
+
+      mxbai-embed-large:
+        cost_class: VeryLow
+        typical_latency_ms: 80
+        quality: 0.85
+        context_tokens: 512
+        capabilities: []
+        type: embedding
+        dimensions: 1024
+
+      all-minilm:
+        cost_class: VeryLow
+        typical_latency_ms: 30
+        quality: 0.70
+        context_tokens: 256
+        capabilities: []
+        type: embedding
+        dimensions: 384
+
+# =============================================================================
+# CAPABILITY DEFINITIONS
+# =============================================================================
+#
+# Capabilities that models can have:
+#
+# tool_use          - Function/tool calling support
+# vision            - Image understanding
+# structured_output - JSON mode / schema enforcement
+# code              - Code generation/understanding
+# reasoning         - Multi-step logical reasoning
+# multilingual      - Good performance across languages
+# web_search        - Real-time web information retrieval
+#
+# Model types:
+#
+# (default)         - LLM for chat/completion
+# embedding         - Vector embedding model
+# reranker          - Cross-encoder reranking model
+#
+# Architecture types:
+#
+# dense             - Traditional transformer (all parameters active)
+# moe               - Mixture of Experts (only subset active per forward pass)
+# hybrid            - Hybrid architecture (e.g., Jamba's Mamba-Transformer)
+#
+# Provider types:
+#
+# direct            - Direct API access to model provider
+# aggregator        - Routes to multiple underlying providers (adds latency overhead)
+#
+# =============================================================================

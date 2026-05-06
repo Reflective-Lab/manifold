@@ -24,7 +24,8 @@ implementations for common operational backends.
 - Object-store adapter builders.
 - Experience-store adapters.
 - Vector recall adapters.
-- Future generic provider and tool adapters.
+- Generic LLM provider adapters.
+- Future search, fetch, feed, embedding, and tool adapters.
 
 ## Boundary
 
@@ -42,9 +43,14 @@ contract. Use `../embassy` when the API must name the external source.
 
 ```text
 crates/manifold/
+  src/llm/             LLM chat adapters and provider selection helpers
+  config/models.yaml   LLM provider/model registry used by selection
   src/object_storage/  Local, S3, and GCS object-store builders
   src/experience/      SurrealDB and LanceDB experience stores
   src/vector/          LanceDB vector recall adapter
+  src/secret.rs        Secret-provider abstraction for adapter credentials
+  src/model_selection.rs Provider/model metadata used by LLM selection
+  src/registry_loader.rs YAML model registry loader
   src/lib.rs           Public adapter surface and Converge re-exports
 ```
 
@@ -58,12 +64,22 @@ crates/manifold/
 | `experience-surrealdb` | SurrealDB experience store |
 | `experience-lancedb` | LanceDB vector-indexed experience store |
 | `vector-lancedb` | LanceDB vector recall |
+| `anthropic` | Anthropic Claude chat adapter |
+| `openai` | OpenAI chat adapter |
+| `gemini` | Google Gemini chat adapter |
+| `mistral` | Mistral chat adapter |
+| `openrouter` | OpenRouter chat adapter |
+| `kong` | Kong AI Gateway chat adapter |
+| `staik` | Staik chat adapter |
+| `arcee`, `writer`, `minmax` | OpenAI-compatible chat adapters |
 
 ## Feature Flags
 
 - Default: `object-local`.
 - `object-all`: local, S3, and GCS object storage.
 - `all-storage`: all current object, experience, and vector adapters.
+- `llm-all`: all current LLM chat adapter modules and selection metadata.
+- `registry`: YAML model registry loader and compiled-in model catalog.
 
 ## Usage
 
@@ -82,6 +98,15 @@ let config = StorageConfig {
 let store = build_store(&config)?;
 ```
 
+```rust
+use manifold::{AnthropicBackend, EnvSecretProvider};
+use converge_provider::{ChatBackend, ChatRequest};
+
+let backend = AnthropicBackend::from_secret_provider(&EnvSecretProvider)?;
+// Product or Runway assembly registers the backend handle through
+// converge_provider::ChatBackendRegistry.
+```
+
 ## Development
 
 ```sh
@@ -93,6 +118,9 @@ just doc
 ```
 
 Converge platform dependencies resolve from crates.io.
+During Converge 3.8.1 migration this repo uses a local `[patch.crates-io]`
+override to compile against `~/dev/work/converge`; remove that override after
+3.8.1 is published.
 
 ## Project Files
 
