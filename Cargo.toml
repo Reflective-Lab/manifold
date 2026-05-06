@@ -7,7 +7,7 @@ version = "1.0.0"
 edition = "2024"
 rust-version = "1.94.0"
 license = "MIT"
-repository = "https://github.com/Reflective-Lab/manifold"
+repository = "https://github.com/Reflective-Lab/manifold-adapters"
 
 [workspace.dependencies]
 converge-core = "3.8.1"
