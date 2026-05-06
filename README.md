@@ -1,8 +1,8 @@
 # manifold
 
-[![CI](https://github.com/Reflective-Lab/manifold/actions/workflows/ci.yml/badge.svg)](https://github.com/Reflective-Lab/manifold/actions/workflows/ci.yml)
-[![Security](https://github.com/Reflective-Lab/manifold/actions/workflows/security.yml/badge.svg)](https://github.com/Reflective-Lab/manifold/actions/workflows/security.yml)
-[![dependency status](https://deps.rs/repo/github/Reflective-Lab/manifold/status.svg)](https://deps.rs/repo/github/Reflective-Lab/manifold)
+[![CI](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/ci.yml/badge.svg)](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/ci.yml)
+[![Security](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/security.yml/badge.svg)](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/security.yml)
+[![dependency status](https://deps.rs/repo/github/Reflective-Lab/manifold-adapters/status.svg)](https://deps.rs/repo/github/Reflective-Lab/manifold-adapters)
 ![MSRV](https://img.shields.io/badge/MSRV-1.94.0-blue)
 <img alt="gitleaks badge" src="https://img.shields.io/badge/protected%20by-gitleaks-blue">
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -25,7 +25,7 @@ implementations for common operational backends.
 - Experience-store adapters.
 - Vector recall adapters.
 - Generic LLM provider adapters.
-- Future search, fetch, feed, embedding, and tool adapters.
+- Search, fetch, feed, embedding, reranking, vector, and tool adapters.
 
 ## Boundary
 
@@ -45,6 +45,13 @@ contract. Use `../embassy` when the API must name the external source.
 crates/manifold/
   src/llm/             LLM chat adapters and provider selection helpers
   config/models.yaml   LLM provider/model registry used by selection
+  src/brave.rs         Brave search adapter
+  src/tavily.rs        Tavily search adapter
+  src/fetch.rs         HTTP web fetch adapter
+  src/feed.rs          RSS/Atom/JSON Feed adapter
+  src/embedding/       Qwen-VL embedding adapter
+  src/reranker/        Qwen-VL reranking adapter
+  src/tools/           OpenAPI/GraphQL tool conversion and registry
   src/object_storage/  Local, S3, and GCS object-store builders
   src/experience/      SurrealDB and LanceDB experience stores
   src/vector/          LanceDB vector recall adapter
@@ -72,6 +79,12 @@ crates/manifold/
 | `kong` | Kong AI Gateway chat adapter |
 | `staik` | Staik chat adapter |
 | `arcee`, `writer`, `minmax` | OpenAI-compatible chat adapters |
+| `brave` | Brave web search adapter |
+| `tavily` | Tavily web search adapter |
+| `fetch` | HTTP web fetch adapter |
+| `feed` | HTTP RSS/Atom/JSON Feed adapter |
+| `qwen` | Qwen-VL embedding and reranking adapters |
+| `tools` | OpenAPI/GraphQL tool conversion and registry |
 
 ## Feature Flags
 
@@ -80,6 +93,9 @@ crates/manifold/
 - `all-storage`: all current object, experience, and vector adapters.
 - `llm-all`: all current LLM chat adapter modules and selection metadata.
 - `registry`: YAML model registry loader and compiled-in model catalog.
+- `search-all`: Brave, Tavily, HTTP fetch, and feed adapters.
+- `all-vector`: LanceDB vector adapter plus in-memory/vector helper surface.
+- `tools`: OpenAPI/GraphQL tool conversion and registry.
 
 ## Usage
 

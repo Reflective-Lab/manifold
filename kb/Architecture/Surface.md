@@ -15,6 +15,10 @@ families with adapter-qualified type names.
   `StaikBackend`, `ArceeBackend`, `WriterBackend`, and `MinMaxBackend`.
 - `registry_loader` — YAML model registry loader and schema for the LLM model
   catalog.
+- `brave`, `tavily`, `search`, `fetch`, `feed` — web search, HTTP fetch, and
+  feed discovery/fetch adapters.
+- `embedding`, `reranker` — Qwen-VL embedding and reranking adapters.
+- `tools` — OpenAPI/GraphQL tool conversion and registry.
 - `object_storage` — local, S3, and GCS object-store builders.
 - `experience` — SurrealDB and LanceDB experience stores.
 - `vector` — LanceDB vector recall adapter.

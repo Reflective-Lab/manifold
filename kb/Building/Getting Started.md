@@ -5,8 +5,8 @@ source: mixed
 # Getting Started
 
 ```bash
-git clone https://github.com/Reflective-Lab/manifold.git
-cd manifold
+git clone https://github.com/Reflective-Lab/manifold-adapters.git
+cd manifold-adapters
 just                # check + lint + test
 ```
 

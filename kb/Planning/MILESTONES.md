@@ -14,7 +14,8 @@ source: mixed
       `llm-all`.
 - [x] Remove LLM adapter definitions, model catalog, live chat examples, and
       live LLM endpoint probes from Converge staging.
-- [ ] Move search, fetch, feed, embedding, and tool adapters.
+- [x] Move search, fetch, feed, embedding, reranking, vector, and OpenAPI/GraphQL
+      tool adapters.
 - [ ] Add downstream proof that products register Manifold handles through
       `converge_provider::ChatBackendRegistry`.
 - [ ] Remove local Converge `[patch.crates-io]` after Converge 3.8.1 is
