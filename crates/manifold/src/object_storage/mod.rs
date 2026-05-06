@@ -9,10 +9,15 @@ use converge_storage::{ObjectStore, StorageConfig, StorageError, StorageUri};
 
 #[cfg(feature = "object-gcs")]
 mod gcs;
+#[cfg(feature = "object-huggingface")]
+pub mod huggingface;
 #[cfg(feature = "object-local")]
 mod local;
 #[cfg(feature = "object-s3")]
 mod s3;
+
+#[cfg(feature = "object-huggingface")]
+pub use huggingface::HuggingFaceObjectStore;
 
 #[cfg(any(feature = "object-s3", test))]
 fn resolve_s3_options<'a>(

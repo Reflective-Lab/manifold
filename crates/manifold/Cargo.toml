@@ -32,9 +32,12 @@ zeroize = { workspace = true, optional = true }
 
 arrow-array = { workspace = true, optional = true }
 arrow-schema = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
 base64.workspace = true
+chrono = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 hex.workspace = true
+hf-hub = { workspace = true, optional = true }
 lancedb = { workspace = true, optional = true }
 quick-xml = { workspace = true, optional = true }
 regex-lite.workspace = true
@@ -52,7 +55,14 @@ search-all = ["brave", "tavily", "fetch", "feed"]
 object-local = ["object_store/fs"]
 object-s3 = ["object_store/aws"]
 object-gcs = ["object_store/gcp"]
-object-all = ["object-local", "object-s3", "object-gcs"]
+object-huggingface = [
+    "_http",
+    "dep:async-trait",
+    "dep:chrono",
+    "dep:futures",
+    "dep:hf-hub",
+]
+object-all = ["object-local", "object-s3", "object-gcs", "object-huggingface"]
 experience-surrealdb = ["dep:surrealdb", "surrealdb/protocol-ws", "surrealdb/rustls"]
 experience-lancedb = ["dep:lancedb", "dep:arrow-array", "dep:arrow-schema", "dep:tokio-stream"]
 vector-lancedb = ["dep:lancedb", "dep:arrow-array", "dep:arrow-schema", "dep:futures"]
