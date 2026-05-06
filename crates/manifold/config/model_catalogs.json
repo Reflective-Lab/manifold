@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-02-01T23:30:11Z",
+  "providers": {},
+  "summary": {
+    "total_models": 0,
+    "per_provider": {}
+  },
+  "errors": {
+    "openrouter": "missing OPENROUTER_API_KEY",
+    "groq": "missing GROQ_API_KEY",
+    "together": "missing TOGETHER_API_KEY",
+    "fireworks": "missing FIREWORKS_API_KEY"
+  }
+}

@@ -1,44 +1,142 @@
 [package]
-name = "manifold"
+name = "converge-manifold-adapters"
 version.workspace = true
-publish = false
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Generic storage, provider, and tool adapters for Converge contracts."
 
+[lib]
+name = "manifold"
+path = "src/lib.rs"
+
 [dependencies]
 converge-core.workspace = true
 converge-experience.workspace = true
+converge-pack.workspace = true
+converge-provider.workspace = true
 converge-storage.workspace = true
 object_store.workspace = true
+reqwest = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
+serde_yaml.workspace = true
+schemars.workspace = true
+sha2.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+toml.workspace = true
 tracing.workspace = true
+zeroize = { workspace = true, optional = true }
 
 arrow-array = { workspace = true, optional = true }
 arrow-schema = { workspace = true, optional = true }
+async-trait = { workspace = true, optional = true }
+base64.workspace = true
+chrono = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
+hex.workspace = true
+hf-hub = { workspace = true, optional = true }
 lancedb = { workspace = true, optional = true }
+quick-xml = { workspace = true, optional = true }
+regex-lite.workspace = true
+scraper = { workspace = true, optional = true }
 surrealdb = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
+urlencoding = { workspace = true, optional = true }
 
 [features]
 default = ["object-local"]
+_http = ["dep:reqwest"]
+registry = []
+fetch = ["_http"]
+feed = ["fetch", "dep:quick-xml"]
+extract = ["dep:scraper"]
+search-all = ["brave", "tavily", "fetch", "feed"]
 object-local = ["object_store/fs"]
 object-s3 = ["object_store/aws"]
 object-gcs = ["object_store/gcp"]
-object-all = ["object-local", "object-s3", "object-gcs"]
+object-huggingface = [
+    "_http",
+    "dep:async-trait",
+    "dep:chrono",
+    "dep:futures",
+    "dep:hf-hub",
+]
+object-all = ["object-local", "object-s3", "object-gcs", "object-huggingface"]
 experience-surrealdb = ["dep:surrealdb", "surrealdb/protocol-ws", "surrealdb/rustls"]
 experience-lancedb = ["dep:lancedb", "dep:arrow-array", "dep:arrow-schema", "dep:tokio-stream"]
 vector-lancedb = ["dep:lancedb", "dep:arrow-array", "dep:arrow-schema", "dep:futures"]
+qdrant = []
+all-vector = ["qdrant", "vector-lancedb"]
 all-storage = ["object-all", "experience-surrealdb", "experience-lancedb", "vector-lancedb"]
+anthropic = ["_http"]
+gemini = ["_http"]
+openai = ["_http"]
+openrouter = ["_http"]
+mistral = ["_http"]
+perplexity = ["_http"]
+qwen = ["_http"]
+grok = ["_http"]
+deepseek = ["_http"]
+baidu = ["_http"]
+zhipu = ["_http"]
+kimi = ["_http"]
+apertus = ["_http"]
+arcee = ["_http"]
+writer = ["_http"]
+minmax = ["_http"]
+kong = ["_http"]
+staik = ["_http"]
+brave = ["_http", "dep:urlencoding"]
+tavily = ["_http"]
+tools = []
+llm-all = [
+    "registry",
+    "anthropic",
+    "gemini",
+    "openai",
+    "openrouter",
+    "mistral",
+    "perplexity",
+    "qwen",
+    "grok",
+    "deepseek",
+    "baidu",
+    "zhipu",
+    "kimi",
+    "apertus",
+    "arcee",
+    "writer",
+    "minmax",
+    "kong",
+    "staik",
+    "brave",
+]
+secure = ["dep:zeroize"]
 
 [dev-dependencies]
+dotenv.workspace = true
+parking_lot.workspace = true
+proptest.workspace = true
 tempfile.workspace = true
+wiremock.workspace = true
+
+[[example]]
+name = "live_chat"
+path = "examples/live_chat.rs"
+required-features = ["llm-all"]
+
+[[example]]
+name = "format_matrix"
+path = "examples/format_matrix.rs"
+required-features = ["openrouter"]
+
+[[test]]
+name = "live_search_endpoints"
+path = "tests/live_search_endpoints.rs"
+required-features = ["search-all"]
 
 [lints]
 workspace = true

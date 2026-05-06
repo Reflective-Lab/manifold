@@ -12,21 +12,42 @@ repository = "https://github.com/Reflective-Lab/manifold-adapters"
 [workspace.dependencies]
 converge-core = "3.8.1"
 converge-experience = "3.8.1"
+converge-pack = "3.8.1"
+converge-provider = "3.8.1"
 converge-storage = "3.8.1"
 
 arrow-array = "57"
 arrow-schema = "57"
+async-trait = "0.1"
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["std"] }
 futures = "0.3"
+hex = "0.4"
+hf-hub = { version = "0.3", default-features = false, features = ["online", "tokio"] }
+parking_lot = "0.12"
+proptest = "1.5"
 lancedb = { version = "0.26", default-features = false }
 object_store = "0.13"
+quick-xml = "0.39"
+regex-lite = "0.1"
+reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false }
+scraper = { version = "0.20", default-features = false }
+sha2 = "0.10"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
+serde_yaml = "0.9"
+schemars = "0.8"
 surrealdb = { version = "3", default-features = false }
 tempfile = "3"
 thiserror = "2"
 tokio = { version = "1.48", features = ["full", "macros", "sync"] }
 tokio-stream = { version = "0.1", features = ["net", "sync"] }
+toml = "0.8"
 tracing = "0.1"
+urlencoding = "2.1"
+wiremock = "0.6"
+zeroize = "1"
+dotenv = "0.15"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
@@ -50,3 +71,10 @@ uninlined_format_args = "allow"
 needless_pass_by_value = "allow"
 unused_self = "allow"
 wildcard_imports = "allow"
+if_not_else = "allow"
+map_unwrap_or = "allow"
+default_trait_access = "allow"
+collapsible_if = "allow"
+match_same_arms = "allow"
+struct_field_names = "allow"
+float_cmp = "allow"
