@@ -48,6 +48,9 @@ allow = [
     "CC0-1.0",
     "Unlicense",
     "CDLA-Permissive-2.0",
+    # MPL-2.0 — file-level copyleft, OSI/FSF approved. Transitive via
+    # cssparser/selectors → scraper (HTML extract feature).
+    "MPL-2.0",
 ]
 
 # Private/unpublished crates (proprietary + internal)
