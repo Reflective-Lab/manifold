@@ -7,3 +7,4 @@ Cargo.lock
 *.swo
 .env
 .env.local
+.claude/
