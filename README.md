@@ -1,7 +1,9 @@
 # manifold
 
 [![CI](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/ci.yml/badge.svg)](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/ci.yml)
+[![Coverage](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/coverage.yml/badge.svg)](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/coverage.yml)
 [![Security](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/security.yml/badge.svg)](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/security.yml)
+[![Stability](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/stability.yml/badge.svg)](https://github.com/Reflective-Lab/manifold-adapters/actions/workflows/stability.yml)
 [![Crates.io](https://img.shields.io/crates/v/converge-manifold-adapters.svg)](https://crates.io/crates/converge-manifold-adapters)
 [![docs.rs](https://docs.rs/converge-manifold-adapters/badge.svg)](https://docs.rs/converge-manifold-adapters)
 [![dependency status](https://deps.rs/repo/github/Reflective-Lab/manifold-adapters/status.svg)](https://deps.rs/repo/github/Reflective-Lab/manifold-adapters)
