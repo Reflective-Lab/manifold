@@ -6,11 +6,32 @@
 [advisories]
 unmaintained = "workspace"
 yanked = "warn"
-# Ignore-list parity with foundation. Update both in lockstep when foundation
-# changes. Each entry must be justified inline (transitive crate, no fix
-# available, why the path is not in our exposure surface).
+# Ignore-list parity with foundation, plus extension-specific transitive
+# advisories from vendor adapters (lancedb, surrealdb, hf-hub, scraper). Each
+# entry: transitive crate, no fix upstream, why not in our exposure surface.
 ignore = [
-    # Add advisories here that the foundation also ignores, with justification.
+    # rsa 0.9.10 — Marvin timing sidechannel. Pulled in by surrealdb-core via
+    # jsonwebtoken; only reachable behind `experience-surrealdb` feature, and
+    # we do not perform RSA decryption on attacker-controlled ciphertexts.
+    "RUSTSEC-2023-0071",
+    # atomic-polyfill 1.0.3 — unmaintained. Transitive via heapless used by
+    # rstar/geo-types/surrealdb/lance; no direct use, no fix available.
+    "RUSTSEC-2023-0089",
+    # fxhash 0.2.1 — unmaintained. Transitive via selectors → scraper; only
+    # reachable behind the `extract` feature for HTML scraping helpers.
+    "RUSTSEC-2025-0057",
+    # number_prefix 0.4.0 — unmaintained. Transitive via indicatif → hf-hub;
+    # cosmetic progress-bar code, no security exposure.
+    "RUSTSEC-2025-0119",
+    # paste 1.0.15 — unmaintained proc-macro. Transitive via datafusion/lance;
+    # build-time only, no runtime surface, no fix available.
+    "RUSTSEC-2024-0436",
+    # rustls-pemfile 1.0.4 — unmaintained. Transitive via reqwest 0.11 in
+    # hf-hub 0.3; foundation ignores the same advisory at v2.2.0.
+    "RUSTSEC-2025-0134",
+    # lru 0.12.5 — IterMut unsoundness. Transitive via tantivy → lance-index;
+    # we do not call IterMut on lru caches, exposure path is upstream-internal.
+    "RUSTSEC-2026-0002",
 ]
 
 [licenses]

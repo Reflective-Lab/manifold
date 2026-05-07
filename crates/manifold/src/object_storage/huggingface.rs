@@ -34,12 +34,12 @@ use std::sync::OnceLock;
 
 use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
+use futures::StreamExt;
 use futures::stream;
 use futures::stream::BoxStream;
 use hf_hub::api::tokio::{Api, ApiBuilder, ApiError, ApiRepo};
 use hf_hub::{Repo, RepoType};
 use object_store::local::LocalFileSystem;
-use futures::StreamExt;
 use object_store::path::{self, Path};
 use object_store::{
     CopyOptions, GetOptions, GetResult, GetResultPayload, ListResult, MultipartUpload, ObjectMeta,
@@ -114,9 +114,9 @@ impl HuggingFaceError {
 impl From<HuggingFaceError> for object_store::Error {
     fn from(value: HuggingFaceError) -> Self {
         match value {
-            HuggingFaceError::Http { status, url } if status == 404 => object_store::Error::NotFound {
+            HuggingFaceError::Http { status: 404, url } => object_store::Error::NotFound {
                 path: url,
-                source: format!("HTTP 404").into(),
+                source: "HTTP 404".to_string().into(),
             },
             HuggingFaceError::Http { status, url } => object_store::Error::Generic {
                 store: STORE_NAME,
@@ -270,7 +270,7 @@ impl HuggingFaceObjectStore {
         let e_tag = headers
             .get("etag")
             .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string());
+            .map(ToString::to_string);
 
         Ok(ObjectMeta {
             location,

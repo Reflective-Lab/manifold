@@ -5,9 +5,17 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use converge_core::traits::CapabilityError;
+#[cfg(any(
+    feature = "anthropic",
+    feature = "gemini",
+    feature = "kong",
+    feature = "mistral",
+    feature = "openai",
+))]
+use converge_provider::ChatBackend;
 use converge_provider::{
-    ChatBackend, ChatMessage, ChatRequest, ChatResponse, ChatRole, DynChatBackend, LlmError,
-    ResponseFormat, SelectionCriteria,
+    ChatMessage, ChatRequest, ChatResponse, ChatRole, DynChatBackend, LlmError, ResponseFormat,
+    SelectionCriteria,
 };
 #[cfg(feature = "anthropic")]
 use manifold::AnthropicBackend;
@@ -59,7 +67,7 @@ fn tuning_for(provider: &str) -> ConversationTuning {
 fn load_env() {
     static ONCE: OnceLock<()> = OnceLock::new();
     ONCE.get_or_init(|| {
-        let _ = dotenv::dotenv();
+        let _ = dotenvy::dotenv();
     });
 }
 

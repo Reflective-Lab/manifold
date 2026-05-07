@@ -103,7 +103,7 @@ impl SurrealDbExperienceStore {
     }
 
     async fn init_schema(&self) -> ExperienceStoreResult<()> {
-        let schema = r#"
+        let schema = r"
 DEFINE TABLE event SCHEMALESS;
 DEFINE INDEX event_tenant_ts ON TABLE event COLUMNS tenant_id, occurred_at;
 DEFINE INDEX event_kind_tenant ON TABLE event COLUMNS kind, tenant_id;
@@ -113,7 +113,7 @@ DEFINE INDEX event_trace_link ON TABLE event COLUMNS trace_link_id;
 DEFINE INDEX event_artifact ON TABLE event COLUMNS artifact_id, state;
 DEFINE TABLE trace_link SCHEMALESS;
 DEFINE INDEX trace_link_id_idx ON TABLE trace_link COLUMNS trace_link_id;
-"#;
+";
 
         self.db
             .query(schema)
@@ -337,7 +337,7 @@ impl EventRecord {
             tenant_id: envelope.tenant_id.as_ref().map(ToString::to_string),
             correlation_id: envelope.correlation_id.as_ref().map(ToString::to_string),
             kind: kind_to_str(envelope.event.kind()).to_string(),
-            chain_id: event_chain_id(&envelope.event).map(|value| value.to_string()),
+            chain_id: event_chain_id(&envelope.event).map(ToString::to_string),
             trace_link_id,
             artifact_id,
             state,
@@ -444,7 +444,7 @@ fn event_index_fields(event: &ExperienceEvent) -> (Option<String>, Option<String
         ),
         ExperienceEvent::ArtifactRollbackRecorded { rollback } => (
             None,
-            Some(rollback.artifact_id.to_string()),
+            Some(rollback.artifact_id.clone()),
             Some("rolled_back".to_string()),
         ),
         _ => (None, None, None),
@@ -465,6 +465,7 @@ fn uuid_stub() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use converge_core::BudgetResource;
 
     #[test]
     fn kind_to_string_is_stable() {
@@ -481,8 +482,8 @@ mod tests {
     #[test]
     fn event_record_maps_envelope() {
         let event = ExperienceEvent::BudgetExceeded {
-            chain_id: "chain-1".to_string(),
-            resource: "tokens".to_string(),
+            chain_id: "chain-1".into(),
+            resource: BudgetResource::Tokens,
             limit: "10".to_string(),
             observed: None,
         };

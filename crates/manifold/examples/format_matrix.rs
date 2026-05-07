@@ -450,7 +450,7 @@ fn avg_tokens(results: &[CellResult], format: ResponseFormat) -> f64 {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let _ = dotenv::dotenv();
+    let _ = dotenvy::dotenv();
 
     let backend = std::sync::Arc::new(OpenRouterBackend::from_env()?);
     let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(MAX_PARALLEL));

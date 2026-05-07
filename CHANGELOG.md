@@ -7,10 +7,28 @@ Versioning before 1.0 with the usual pre-1.0 compatibility caveats.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-07
+
+### Added
+
+- HuggingFace `ObjectStore` (read-only) under `object_storage::huggingface`.
+- Generic `HtmlExtractBackend` trait with a `scraper`-backed implementation
+  (`extract` module).
+- Codex-style LLM adapter wiring under `llm`.
+
 ### Changed
 
 - Cargo package renamed from `manifold` to `converge-manifold-adapters`; Rust
   library name remains `manifold`.
+- Switched the dotenv dev-dep from the unmaintained `dotenv` crate to
+  `dotenvy 0.15`.
+- `deny.toml` updated to keep the security gate green under the foundation
+  baseline.
+
+### Fixed
+
+- Code reformatted with `cargo fmt`; the `Format` and `Lint` CI jobs are
+  now green.
 
 ## [0.1.0] - 2026-05-05
 

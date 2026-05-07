@@ -59,9 +59,18 @@ doc:
 doc-open:
     cargo doc --workspace --no-deps --open
 
-# Local release hygiene
+# Local release hygiene.
+# cargo audit is given the same RUSTSEC ignore list as deny.toml, since it
+# does not read deny.toml. Keep this list in lockstep with deny.toml.
 security-audit:
-    cargo audit --deny warnings
+    cargo audit --deny warnings \
+        --ignore RUSTSEC-2023-0071 \
+        --ignore RUSTSEC-2023-0089 \
+        --ignore RUSTSEC-2025-0057 \
+        --ignore RUSTSEC-2025-0119 \
+        --ignore RUSTSEC-2024-0436 \
+        --ignore RUSTSEC-2025-0134 \
+        --ignore RUSTSEC-2026-0002
     cargo deny check
 
 # Session opener

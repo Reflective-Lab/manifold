@@ -230,7 +230,7 @@ async fn run_live_chat(selected: SelectedChatBackend) -> Result<(), Box<dyn Erro
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     let config = selection_config_from_args()?;
     let selected = select_chat_backend(&config)?;
     run_live_chat(selected).await

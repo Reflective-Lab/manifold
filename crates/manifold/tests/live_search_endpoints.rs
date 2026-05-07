@@ -10,7 +10,7 @@ use manifold::{
 fn load_env() {
     static ONCE: OnceLock<()> = OnceLock::new();
     ONCE.get_or_init(|| {
-        let _ = dotenv::dotenv();
+        let _ = dotenvy::dotenv();
     });
 }
 

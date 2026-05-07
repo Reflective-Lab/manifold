@@ -49,6 +49,7 @@ urlencoding = { workspace = true, optional = true }
 [features]
 default = ["object-local"]
 _http = ["dep:reqwest"]
+_chat = []
 registry = []
 fetch = ["_http"]
 feed = ["fetch", "dep:quick-xml"]
@@ -71,24 +72,24 @@ vector-lancedb = ["dep:lancedb", "dep:arrow-array", "dep:arrow-schema", "dep:fut
 qdrant = []
 all-vector = ["qdrant", "vector-lancedb"]
 all-storage = ["object-all", "experience-surrealdb", "experience-lancedb", "vector-lancedb"]
-anthropic = ["_http"]
-gemini = ["_http"]
-openai = ["_http"]
-openrouter = ["_http"]
-mistral = ["_http"]
-perplexity = ["_http"]
-qwen = ["_http"]
-grok = ["_http"]
-deepseek = ["_http"]
-baidu = ["_http"]
-zhipu = ["_http"]
-kimi = ["_http"]
-apertus = ["_http"]
-arcee = ["_http"]
-writer = ["_http"]
-minmax = ["_http"]
-kong = ["_http"]
-staik = ["_http"]
+anthropic = ["_http", "_chat"]
+gemini = ["_http", "_chat"]
+openai = ["_http", "_chat"]
+openrouter = ["_http", "_chat"]
+mistral = ["_http", "_chat"]
+perplexity = ["_http", "_chat"]
+qwen = ["_http", "_chat"]
+grok = ["_http", "_chat"]
+deepseek = ["_http", "_chat"]
+baidu = ["_http", "_chat"]
+zhipu = ["_http", "_chat"]
+kimi = ["_http", "_chat"]
+apertus = ["_http", "_chat"]
+arcee = ["_http", "_chat"]
+writer = ["_http", "_chat"]
+minmax = ["_http", "_chat"]
+kong = ["_http", "_chat"]
+staik = ["_http", "_chat"]
 brave = ["_http", "dep:urlencoding"]
 tavily = ["_http"]
 tools = []
@@ -117,7 +118,7 @@ llm-all = [
 secure = ["dep:zeroize"]
 
 [dev-dependencies]
-dotenv.workspace = true
+dotenvy.workspace = true
 parking_lot.workspace = true
 proptest.workspace = true
 tempfile.workspace = true
@@ -137,6 +138,11 @@ required-features = ["openrouter"]
 name = "live_search_endpoints"
 path = "tests/live_search_endpoints.rs"
 required-features = ["search-all"]
+
+[[test]]
+name = "live_llm_endpoints"
+path = "tests/live_llm_endpoints.rs"
+required-features = ["_chat"]
 
 [lints]
 workspace = true

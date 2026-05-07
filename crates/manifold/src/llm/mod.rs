@@ -30,7 +30,9 @@
 mod anthropic;
 #[cfg(feature = "arcee")]
 mod arcee;
+#[cfg(feature = "_chat")]
 mod error_classification;
+#[cfg(feature = "_chat")]
 mod format_contract;
 #[cfg(feature = "gemini")]
 mod gemini;
@@ -45,6 +47,7 @@ mod openai;
 #[cfg(feature = "openrouter")]
 mod openrouter;
 mod resilient;
+#[cfg(feature = "_chat")]
 mod selection;
 #[cfg(feature = "staik")]
 mod staik;
@@ -69,6 +72,7 @@ pub use openai::OpenAiBackend;
 #[cfg(feature = "openrouter")]
 pub use openrouter::OpenRouterBackend;
 pub use resilient::ResilientChatBackend;
+#[cfg(feature = "_chat")]
 pub use selection::{
     SelectedChatBackend, select_chat_backend, select_chat_backend_with_secret_provider,
     select_healthy_chat_backend, select_healthy_chat_backend_with_secret_provider,

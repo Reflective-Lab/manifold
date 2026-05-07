@@ -257,6 +257,8 @@ impl LanceDbExperienceStore {
         query_vector: &[f32],
         limit: usize,
     ) -> ExperienceStoreResult<Vec<SimilarEvent>> {
+        use tokio_stream::StreamExt;
+
         let table = self
             .db
             .open_table(TABLE_NAME)
@@ -277,8 +279,6 @@ impl LanceDbExperienceStore {
             .map_err(|err| ExperienceStoreError::StorageError {
                 message: format!("Failed to execute vector search: {err}"),
             })?;
-
-        use tokio_stream::StreamExt;
 
         let mut events = Vec::new();
         while let Some(batch_result) = stream.next().await {
@@ -434,7 +434,7 @@ mod tests {
         ExperienceEventEnvelope::new(
             id,
             ExperienceEvent::OutcomeRecorded {
-                chain_id: "chain-1".to_string(),
+                chain_id: "chain-1".into(),
                 step: DecisionStep::Planning,
                 passed: true,
                 stop_reason: None,

@@ -60,11 +60,7 @@ pub trait HtmlExtractBackend: Send + Sync {
     ///
     /// The returned vector preserves the order of selectors and, within a
     /// selector, the document order of matches.
-    fn extract(
-        &self,
-        html: &str,
-        selectors: &[&str],
-    ) -> Result<Vec<ExtractedNode>, ExtractError>;
+    fn extract(&self, html: &str, selectors: &[&str]) -> Result<Vec<ExtractedNode>, ExtractError>;
 }
 
 /// `scraper`-backed HTML extractor.
@@ -86,20 +82,15 @@ impl HtmlExtractBackend for ScraperHtmlBackend {
         "scraper"
     }
 
-    fn extract(
-        &self,
-        html: &str,
-        selectors: &[&str],
-    ) -> Result<Vec<ExtractedNode>, ExtractError> {
+    fn extract(&self, html: &str, selectors: &[&str]) -> Result<Vec<ExtractedNode>, ExtractError> {
         let document = Html::parse_document(html);
         let mut out = Vec::new();
         for selector_str in selectors {
-            let selector = Selector::parse(selector_str).map_err(|e| {
-                ExtractError::InvalidSelector {
+            let selector =
+                Selector::parse(selector_str).map_err(|e| ExtractError::InvalidSelector {
                     selector: (*selector_str).to_string(),
                     reason: e.to_string(),
-                }
-            })?;
+                })?;
             for element in document.select(&selector) {
                 let text = collapse_whitespace(&element.text().collect::<String>());
                 let attributes = element
@@ -154,14 +145,20 @@ mod tests {
         let backend = ScraperHtmlBackend::new();
         let nodes = backend.extract(SAMPLE, &["a.cite"]).expect("extract");
         assert_eq!(nodes.len(), 1);
-        assert_eq!(nodes[0].attributes.get("href").map(String::as_str), Some("https://example.com"));
-        assert_eq!(nodes[0].attributes.get("class").map(String::as_str), Some("cite"));
+        assert_eq!(
+            nodes[0].attributes.get("href").map(String::as_str),
+            Some("https://example.com")
+        );
+        assert_eq!(
+            nodes[0].attributes.get("class").map(String::as_str),
+            Some("cite")
+        );
     }
 
     #[test]
     fn collapses_whitespace_in_text() {
-        let html = r#"<p>  multiple    spaces
-                       and newlines  </p>"#;
+        let html = r"<p>  multiple    spaces
+                       and newlines  </p>";
         let backend = ScraperHtmlBackend::new();
         let nodes = backend.extract(html, &["p"]).expect("extract");
         assert_eq!(nodes[0].text, "multiple spaces and newlines");
@@ -191,7 +188,9 @@ mod tests {
     #[test]
     fn no_matches_returns_empty_vec() {
         let backend = ScraperHtmlBackend::new();
-        let nodes = backend.extract(SAMPLE, &["div.nonexistent"]).expect("extract");
+        let nodes = backend
+            .extract(SAMPLE, &["div.nonexistent"])
+            .expect("extract");
         assert!(nodes.is_empty());
     }
 
