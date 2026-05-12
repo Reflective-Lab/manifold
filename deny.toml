@@ -51,6 +51,20 @@ allow = [
     # MPL-2.0 — file-level copyleft, OSI/FSF approved. Transitive via
     # cssparser/selectors → scraper (HTML extract feature).
     "MPL-2.0",
+    # 0BSD — BSD Zero Clause, effectively public-domain-equivalent and OSI
+    # approved. Transitive via mock_instant → lance-core → lancedb.
+    "0BSD",
+]
+
+# Per-crate license exceptions. BUSL-1.1 is source-available, not OSI-approved,
+# so we grant it only for the specific surrealdb crates we knowingly consume
+# behind the `experience-surrealdb` feature — never as a global allow.
+exceptions = [
+    { name = "surrealdb", allow = ["BUSL-1.1"] },
+    { name = "surrealdb-core", allow = ["BUSL-1.1"] },
+    { name = "surrealdb-protocol", allow = ["BUSL-1.1"] },
+    { name = "surrealdb-types", allow = ["BUSL-1.1"] },
+    { name = "surrealdb-types-derive", allow = ["BUSL-1.1"] },
 ]
 
 # Private/unpublished crates (proprietary + internal)

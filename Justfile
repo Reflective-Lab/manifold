@@ -91,7 +91,7 @@ status:
 clean:
     cargo clean
 
-# ── Release-grade gates (appended from ~/dev/templates/converge-extension) ─
+# ── Release-grade gates (appended from ~/dev/reflective-templates/converge-extension) ─
 # Standard: https://github.com/Reflective-Lab/converge/blob/main/kb/Standards/Extension%20Release%20Checklist.md
 
 # Gate 2: workspace coverage. ≥ 80% per crate, no regression.

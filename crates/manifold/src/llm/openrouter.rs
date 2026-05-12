@@ -598,7 +598,7 @@ mod tests {
     fn test_site_headers_set() {
         let backend = OpenRouterBackend::new("test-key")
             .with_site_url("https://converge.zone")
-            .with_site_name("Converge Hackathon");
+            .with_site_name("Converge");
 
         let headers = backend.build_headers().unwrap();
 
@@ -608,7 +608,7 @@ mod tests {
         );
         assert_eq!(
             headers.get("X-Title").unwrap().to_str().unwrap(),
-            "Converge Hackathon"
+            "Converge"
         );
     }
 

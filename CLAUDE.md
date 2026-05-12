@@ -7,7 +7,7 @@ Read and follow `AGENTS.md` — it is the canonical project documentation.
 - **Milestones:** `kb/Planning/MILESTONES.md`
 - **Changelog:** `kb/History/CHANGELOG.md`
 - **Standard:** [Extension Release Checklist](https://github.com/Reflective-Lab/converge/blob/main/kb/Standards/Extension%20Release%20Checklist.md) — the engineering bar every release must meet
-- **Strategic context:** `~/dev/work/EPIC.md`
+- **Strategic context:** `~/dev/reflective/stack/bedrock-platform/EPIC.md`
 
 ## Claude-Specific Notes
 
