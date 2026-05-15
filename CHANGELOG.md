@@ -7,6 +7,13 @@ Versioning before 1.0 with the usual pre-1.0 compatibility caveats.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-05-15
+
+### Changed
+
+- Bumped release metadata for the coordinated extension release. No public API
+  changes.
+
 ## [1.1.0] - 2026-05-07
 
 ### Added
