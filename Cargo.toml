@@ -10,11 +10,11 @@ license = "MIT"
 repository = "https://github.com/Reflective-Lab/manifold-adapters"
 
 [workspace.dependencies]
-converge-core = "3.8.1"
-converge-experience = "3.8.1"
-converge-pack = "3.8.1"
-converge-provider = "3.8.1"
-converge-storage = "3.8.1"
+converge-core = "3.9.1"
+converge-experience = "3.9.1"
+converge-pack = "3.9.1"
+converge-provider = "3.9.1"
+converge-storage = "3.9.1"
 
 arrow-array = "57"
 arrow-schema = "57"
