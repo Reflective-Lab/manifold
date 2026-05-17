@@ -7,12 +7,13 @@ Versioning before 1.0 with the usual pre-1.0 compatibility caveats.
 
 ## [Unreleased]
 
-## [1.1.1] - 2026-05-15
+## [1.1.1] - 2026-05-17
 
 ### Changed
 
-- Bumped release metadata for the coordinated extension release. No public API
-  changes.
+- Bump `converge-core`, `converge-experience`, `converge-pack`,
+  `converge-provider`, `converge-storage` to `3.9.1`. No public API changes.
+- First clean `just release-check` run including all five gates.
 
 ## [1.1.0] - 2026-05-07
 
