@@ -48,6 +48,8 @@ mod openai;
 mod openrouter;
 mod resilient;
 #[cfg(feature = "_chat")]
+mod retry;
+#[cfg(feature = "_chat")]
 mod selection;
 #[cfg(feature = "staik")]
 mod staik;

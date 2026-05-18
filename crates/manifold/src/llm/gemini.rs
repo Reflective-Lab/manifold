@@ -1,8 +1,6 @@
 // Copyright 2024-2026 Reflective Labs
 // SPDX-License-Identifier: MIT
 
-use std::time::Duration;
-
 use reqwest::Client;
 use reqwest::header::{CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
@@ -10,6 +8,7 @@ use sha2::{Digest, Sha256};
 
 use super::error_classification::{classify_http_error, network_error, parse_error};
 use super::format_contract::finalize_chat_response;
+use super::retry::{RetryOutcome, retry_with_backoff};
 use crate::secret::{EnvSecretProvider, SecretProvider, SecretString};
 use converge_core::backend::{BackendError, BackendResult};
 use converge_provider::{
@@ -277,53 +276,36 @@ impl GeminiBackend {
         request: &GeminiRequest,
     ) -> Result<GeminiResponse, ChatLlmError> {
         let url = self.build_url(model);
-        let mut headers = HeaderMap::new();
-        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        let mut req_headers = HeaderMap::new();
+        req_headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
-        let mut last_error = None;
-
-        for attempt in 0..=self.max_retries {
-            if attempt > 0 {
-                tokio::time::sleep(Duration::from_millis(100 * 2_u64.pow(attempt as u32))).await;
-            }
-
-            let result = self
-                .client
-                .post(&url)
-                .headers(headers.clone())
-                .json(request)
-                .send()
-                .await;
-
-            match result {
-                Ok(response) => {
-                    let status = response.status();
-
-                    if status.is_success() {
-                        match response.json::<GeminiResponse>().await {
-                            Ok(parsed) => return Ok(parsed),
-                            Err(e) => {
-                                last_error = Some(parse_error(e));
+        retry_with_backoff(self.max_retries, || {
+            let client = &self.client;
+            let url = &url;
+            let headers = req_headers.clone();
+            let request = request;
+            async move {
+                match client.post(url).headers(headers).json(request).send().await {
+                    Ok(response) => {
+                        let status = response.status();
+                        if status.is_success() {
+                            match response.json::<GeminiResponse>().await {
+                                Ok(parsed) => RetryOutcome::Success(parsed),
+                                Err(e) => RetryOutcome::Retry(parse_error(e)),
                             }
+                        } else if status.as_u16() == 429 || status.as_u16() >= 500 {
+                            let body = response.text().await.unwrap_or_default();
+                            RetryOutcome::Retry(classify_http_error(status.as_u16(), &body, model))
+                        } else {
+                            let body = response.text().await.unwrap_or_default();
+                            RetryOutcome::Fail(classify_http_error(status.as_u16(), &body, model))
                         }
-                    } else if status.as_u16() == 429 || status.as_u16() >= 500 {
-                        let body = response.text().await.unwrap_or_default();
-                        last_error = Some(classify_http_error(status.as_u16(), &body, model));
-                    } else {
-                        let body = response.text().await.unwrap_or_default();
-                        return Err(classify_http_error(status.as_u16(), &body, model));
                     }
-                }
-                Err(e) => {
-                    last_error = Some(network_error(e));
+                    Err(e) => RetryOutcome::Retry(network_error(e)),
                 }
             }
-        }
-
-        Err(last_error.unwrap_or_else(|| ChatLlmError::ProviderError {
-            message: "unknown error".to_string(),
-            code: None,
-        }))
+        })
+        .await
     }
 }
 
