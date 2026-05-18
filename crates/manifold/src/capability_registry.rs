@@ -413,12 +413,12 @@ impl CapabilityRegistry {
 
         // HTTP fetch is always available (no API key required)
         #[cfg(feature = "fetch")]
-        {
-            registry.fetch_backend = Some(Arc::new(HttpFetchProvider::new()));
+        if let Ok(provider) = HttpFetchProvider::new() {
+            registry.fetch_backend = Some(Arc::new(provider));
         }
         #[cfg(feature = "feed")]
-        {
-            registry.feed_backend = Some(Arc::new(HttpFeedProvider::new()));
+        if let Ok(provider) = HttpFeedProvider::new() {
+            registry.feed_backend = Some(Arc::new(provider));
         }
 
         registry

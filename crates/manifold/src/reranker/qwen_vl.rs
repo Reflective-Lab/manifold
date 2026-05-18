@@ -101,18 +101,16 @@ pub struct QwenVLReranker {
 impl QwenVLReranker {
     /// Creates a new reranker with custom endpoint.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if the HTTP client cannot be created.
-    #[must_use]
-    pub fn new(endpoint: QwenVLRerankerEndpoint) -> Self {
-        Self {
-            endpoint,
-            client: reqwest::blocking::Client::builder()
-                .timeout(std::time::Duration::from_secs(60))
-                .build()
-                .expect("Failed to create HTTP client"),
-        }
+    /// Returns [`CapabilityError`] if the underlying TLS stack fails to
+    /// initialise (e.g. missing system certificate store).
+    pub fn new(endpoint: QwenVLRerankerEndpoint) -> Result<Self, CapabilityError> {
+        let client = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(60))
+            .build()
+            .map_err(|e| CapabilityError::network(format!("failed to create HTTP client: {e}")))?;
+        Ok(Self { endpoint, client })
     }
 
     /// Creates a reranker using `HuggingFace` Inference API.
@@ -125,10 +123,10 @@ impl QwenVLReranker {
         if api_key.is_empty() {
             return Err(CapabilityError::auth("HuggingFace API key is required"));
         }
-        Ok(Self::new(QwenVLRerankerEndpoint::HuggingFace {
+        Self::new(QwenVLRerankerEndpoint::HuggingFace {
             api_key,
             model: DEFAULT_QWEN_VL_RERANKER_MODEL.into(),
-        }))
+        })
     }
 
     /// Creates a reranker using `HuggingFace` with `HUGGINGFACE_API_KEY` env var.
@@ -153,10 +151,10 @@ impl QwenVLReranker {
         if api_key.is_empty() {
             return Err(CapabilityError::auth("Alibaba Cloud API key is required"));
         }
-        Ok(Self::new(QwenVLRerankerEndpoint::AlibabaCloud {
+        Self::new(QwenVLRerankerEndpoint::AlibabaCloud {
             api_key,
             model: "qwen-vl-reranker-v1".into(),
-        }))
+        })
     }
 
     /// Creates a reranker using Alibaba Cloud with `DASHSCOPE_API_KEY` env var.
@@ -171,8 +169,12 @@ impl QwenVLReranker {
     }
 
     /// Creates a reranker using a local server.
-    #[must_use]
-    pub fn from_local(url: impl Into<String>) -> Self {
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CapabilityError`] if the underlying HTTP client cannot be
+    /// initialised.
+    pub fn from_local(url: impl Into<String>) -> Result<Self, CapabilityError> {
         Self::new(QwenVLRerankerEndpoint::Local {
             url: url.into(),
             model: DEFAULT_QWEN_VL_RERANKER_MODEL.into(),
@@ -634,13 +636,13 @@ mod tests {
         assert_eq!(hf.endpoint.model(), DEFAULT_QWEN_VL_RERANKER_MODEL);
         assert_eq!(hf.endpoint.api_key(), Some("test-key"));
 
-        let local = QwenVLReranker::from_local("http://localhost:8080");
+        let local = QwenVLReranker::from_local("http://localhost:8080").unwrap();
         assert!(local.endpoint.api_key().is_none());
     }
 
     #[test]
     fn modalities() {
-        let reranker = QwenVLReranker::from_local("http://localhost:8080");
+        let reranker = QwenVLReranker::from_local("http://localhost:8080").unwrap();
         let modalities = reranker.modalities();
         assert!(modalities.contains(&Modality::Text));
         assert!(modalities.contains(&Modality::Image));
@@ -656,7 +658,7 @@ mod tests {
 
     #[test]
     fn text_content_conversion() {
-        let reranker = QwenVLReranker::from_local("http://localhost:8080");
+        let reranker = QwenVLReranker::from_local("http://localhost:8080").unwrap();
         let content = reranker
             .input_to_content(&EmbedInput::text("Hello"))
             .unwrap();
@@ -669,7 +671,7 @@ mod tests {
 
     #[test]
     fn empty_candidates_error() {
-        let reranker = QwenVLReranker::from_local("http://localhost:8080");
+        let reranker = QwenVLReranker::from_local("http://localhost:8080").unwrap();
         let result = reranker.rerank(&RerankRequest::new(EmbedInput::text("query"), vec![]));
         assert!(result.is_err());
     }

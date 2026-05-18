@@ -381,18 +381,17 @@ impl std::fmt::Debug for HttpFeedProvider {
     }
 }
 
-impl Default for HttpFeedProvider {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl HttpFeedProvider {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            fetch_backend: Arc::new(HttpFetchProvider::new()),
-        }
+    /// Creates a new `HttpFeedProvider`.
+    ///
+    /// # Errors
+    ///
+    /// Propagates [`WebFetchError::Network`] if the underlying HTTP client
+    /// cannot be initialised (e.g. missing system TLS stack).
+    pub fn new() -> Result<Self, crate::search::WebFetchError> {
+        Ok(Self {
+            fetch_backend: Arc::new(HttpFetchProvider::new()?),
+        })
     }
 
     #[must_use]

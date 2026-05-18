@@ -7,8 +7,7 @@
 //! Converge core engine. Providers produce observations; the engine decides.
 
 use serde::{Deserialize, Serialize};
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use sha2::{Digest, Sha256};
 use std::time::Instant;
 
 /// Capabilities that providers can offer.
@@ -317,11 +316,19 @@ impl CallTimer {
 ///
 /// This creates a deterministic fingerprint of a request that can be used
 /// for caching and provenance tracking.
+///
+/// Uses the first 8 bytes of SHA-256 as a `u64` (big-endian), formatted as
+/// 16 lowercase hex digits. The result is stable across compiler versions and
+/// process invocations.
 #[must_use]
 pub fn canonical_hash(data: &str) -> String {
-    let mut hasher = DefaultHasher::new();
-    data.hash(&mut hasher);
-    format!("hash:{:016x}", hasher.finish())
+    let mut hasher = Sha256::new();
+    hasher.update(data.as_bytes());
+    let result = hasher.finalize();
+    format!(
+        "hash:{:016x}",
+        u64::from_be_bytes(result[..8].try_into().unwrap())
+    )
 }
 
 /// Generate a unique observation ID.

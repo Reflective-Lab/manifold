@@ -33,22 +33,22 @@ impl std::fmt::Debug for HttpFetchProvider {
     }
 }
 
-impl Default for HttpFetchProvider {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl HttpFetchProvider {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            client: Client::builder()
-                .redirect(reqwest::redirect::Policy::none())
-                .build()
-                .expect("failed to build reqwest client"),
+    /// Creates a new `HttpFetchProvider`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WebFetchError::Network`] if the underlying TLS stack fails to
+    /// initialise (e.g. missing system certificate store).
+    pub fn new() -> Result<Self, WebFetchError> {
+        let client = Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .map_err(|e| WebFetchError::Network(format!("failed to build reqwest client: {e}")))?;
+        Ok(Self {
+            client,
             user_agent: format!("converge/{}", env!("CARGO_PKG_VERSION")),
-        }
+        })
     }
 
     #[must_use]
@@ -282,7 +282,7 @@ mod tests {
 
     #[test]
     fn redirect_to_non_public_target_is_rejected() {
-        let provider = HttpFetchProvider::new();
+        let provider = HttpFetchProvider::new().unwrap();
         let current = reqwest::Url::parse("https://example.com/feed").unwrap();
         let result = provider.validate_redirect_url(&current, "http://127.0.0.1/admin");
 
@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn https_to_http_redirect_is_rejected() {
-        let provider = HttpFetchProvider::new();
+        let provider = HttpFetchProvider::new().unwrap();
         let current = reqwest::Url::parse("https://example.com/feed").unwrap();
         let result = provider.validate_redirect_url(&current, "http://example.com/feed");
 
@@ -332,13 +332,13 @@ mod tests {
 
     #[test]
     fn default_user_agent_contains_crate_version() {
-        let provider = HttpFetchProvider::new();
+        let provider = HttpFetchProvider::new().unwrap();
         assert!(provider.user_agent.starts_with("converge/"));
     }
 
     #[test]
     fn builder_overrides_user_agent() {
-        let provider = HttpFetchProvider::new().with_user_agent("test-agent/1.0");
+        let provider = HttpFetchProvider::new().unwrap().with_user_agent("test-agent/1.0");
         assert_eq!(provider.user_agent, "test-agent/1.0");
     }
 }
