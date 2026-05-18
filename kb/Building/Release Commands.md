@@ -23,7 +23,7 @@ Per
 - Workspace ≥ 80%, per crate ≥ 80%.
 - No regression below the previously-recorded percentage for this release line.
 - Approved exclusions (transport servers, CLI shells) are listed in
-  [[Architecture/Coverage Policy]] with a one-paragraph justification.
+  the local coverage policy note with a one-paragraph justification.
 
 ## Performance baseline
 
