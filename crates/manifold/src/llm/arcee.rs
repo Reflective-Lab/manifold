@@ -26,7 +26,7 @@ impl ArceeBackend {
                     message: format!("ARCEE_API_KEY: {e}"),
                 })?;
         Ok(Self {
-            inner: OpenAiBackend::new(api_key.expose().to_string())
+            inner: OpenAiBackend::try_new(api_key.expose().to_string())?
                 .with_base_url("https://api.arcee.ai/v2")
                 .with_model("trinity-large-preview"),
         })

@@ -28,16 +28,25 @@ pub struct OpenAiBackend {
 }
 
 impl OpenAiBackend {
-    #[must_use]
-    pub fn new(api_key: impl Into<String>) -> Self {
-        Self {
+    /// REAL-by-default constructor. Rejects empty / whitespace keys so that
+    /// missing or placeholder credentials surface immediately at construction
+    /// rather than at first request. Production code should prefer
+    /// [`Self::from_env`].
+    pub fn try_new(api_key: impl Into<String>) -> BackendResult<Self> {
+        let api_key: String = api_key.into();
+        if api_key.trim().is_empty() {
+            return Err(BackendError::Unavailable {
+                message: "OPENAI_API_KEY is empty or whitespace".to_string(),
+            });
+        }
+        Ok(Self {
             api_key: SecretString::new(api_key),
             model: "gpt-4o".to_string(),
             base_url: "https://api.openai.com".to_string(),
             client: Client::new(),
             temperature: 0.0,
             max_retries: 3,
-        }
+        })
     }
 
     pub fn from_env() -> BackendResult<Self> {
@@ -400,7 +409,7 @@ mod tests {
 
     #[test]
     fn test_openai_backend_creation() {
-        let backend = OpenAiBackend::new("test-key")
+        let backend = OpenAiBackend::try_new("test-key").unwrap()
             .with_model("gpt-4o-mini")
             .with_temperature(0.5);
 
@@ -411,7 +420,7 @@ mod tests {
 
     #[test]
     fn test_build_request_basic() {
-        let backend = OpenAiBackend::new("test-key");
+        let backend = OpenAiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -439,7 +448,7 @@ mod tests {
 
     #[test]
     fn test_build_request_with_system() {
-        let backend = OpenAiBackend::new("test-key");
+        let backend = OpenAiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -469,7 +478,7 @@ mod tests {
 
     #[test]
     fn test_build_request_with_tools() {
-        let backend = OpenAiBackend::new("test-key");
+        let backend = OpenAiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -500,7 +509,7 @@ mod tests {
 
     #[test]
     fn test_build_request_json_format() {
-        let backend = OpenAiBackend::new("test-key");
+        let backend = OpenAiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -527,7 +536,7 @@ mod tests {
 
     #[test]
     fn test_build_request_with_stop_sequences() {
-        let backend = OpenAiBackend::new("test-key");
+        let backend = OpenAiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -587,7 +596,7 @@ mod tests {
                 .await;
         });
 
-        let backend = OpenAiBackend::new("test-key").with_base_url(server.uri());
+        let backend = OpenAiBackend::try_new("test-key").unwrap().with_base_url(server.uri());
         let response = runtime
             .block_on(backend.chat(ChatRequest {
                 messages: vec![
@@ -642,7 +651,7 @@ mod tests {
 
     #[test]
     fn test_build_request_with_assistant_tool_call_history() {
-        let backend = OpenAiBackend::new("test-key");
+        let backend = OpenAiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![
                 ChatMessage {

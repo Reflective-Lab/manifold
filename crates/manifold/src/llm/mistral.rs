@@ -28,16 +28,24 @@ pub struct MistralBackend {
 }
 
 impl MistralBackend {
-    #[must_use]
-    pub fn new(api_key: impl Into<String>) -> Self {
-        Self {
+    /// REAL-by-default constructor. Rejects empty / whitespace keys so that
+    /// missing or placeholder credentials surface immediately at construction.
+    /// Production code should prefer [`Self::from_env`].
+    pub fn try_new(api_key: impl Into<String>) -> BackendResult<Self> {
+        let api_key: String = api_key.into();
+        if api_key.trim().is_empty() {
+            return Err(BackendError::Unavailable {
+                message: "MISTRAL_API_KEY is empty or whitespace".to_string(),
+            });
+        }
+        Ok(Self {
             api_key: SecretString::new(api_key),
             model: "mistral-large-latest".to_string(),
             base_url: "https://api.mistral.ai".to_string(),
             client: Client::new(),
             temperature: 0.0,
             max_retries: 3,
-        }
+        })
     }
 
     pub fn from_env() -> BackendResult<Self> {
@@ -418,7 +426,7 @@ mod tests {
 
     #[test]
     fn mistral_backend_creation() {
-        let backend = MistralBackend::new("test-key")
+        let backend = MistralBackend::try_new("test-key").unwrap()
             .with_model("mistral-medium-latest")
             .with_temperature(0.2);
 
@@ -429,7 +437,7 @@ mod tests {
 
     #[test]
     fn build_request_includes_system_tools_and_json_mode() {
-        let backend = MistralBackend::new("test-key");
+        let backend = MistralBackend::try_new("test-key").unwrap();
         let request = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -521,7 +529,7 @@ mod tests {
 
     #[test]
     fn build_request_with_assistant_tool_call_history() {
-        let backend = MistralBackend::new("test-key");
+        let backend = MistralBackend::try_new("test-key").unwrap();
         let request = backend.build_request(&ChatRequest {
             messages: vec![
                 ChatMessage {

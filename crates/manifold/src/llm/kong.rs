@@ -31,17 +31,35 @@ pub struct KongBackend {
 }
 
 impl KongBackend {
-    #[must_use]
-    pub fn new(api_key: impl Into<String>, gateway_url: impl Into<String>) -> Self {
-        Self {
+    /// REAL-by-default constructor. Rejects empty / whitespace keys and
+    /// empty gateway URLs so that missing or placeholder configuration
+    /// surfaces immediately at construction. Production code should prefer
+    /// [`Self::from_env`].
+    pub fn try_new(
+        api_key: impl Into<String>,
+        gateway_url: impl Into<String>,
+    ) -> BackendResult<Self> {
+        let api_key: String = api_key.into();
+        if api_key.trim().is_empty() {
+            return Err(BackendError::Unavailable {
+                message: "KONG_API_KEY is empty or whitespace".to_string(),
+            });
+        }
+        let gateway_url: String = gateway_url.into();
+        if gateway_url.trim().is_empty() {
+            return Err(BackendError::Unavailable {
+                message: "KONG_GATEWAY_URL is empty or whitespace".to_string(),
+            });
+        }
+        Ok(Self {
             api_key: SecretString::new(api_key),
             model: "gpt-4o".to_string(),
-            gateway_url: gateway_url.into().trim_end_matches('/').to_string(),
+            gateway_url: gateway_url.trim_end_matches('/').to_string(),
             route: "llm/v1/chat".to_string(),
             client: Client::new(),
             temperature: 0.0,
             max_retries: 3,
-        }
+        })
     }
 
     pub fn from_env() -> BackendResult<Self> {
@@ -461,7 +479,7 @@ mod tests {
 
     #[test]
     fn test_kong_backend_creation() {
-        let backend = KongBackend::new("test-key", "https://kong.example.com")
+        let backend = KongBackend::try_new("test-key", "https://kong.example.com").unwrap()
             .with_model("gpt-4o-mini")
             .with_temperature(0.5);
 
@@ -474,25 +492,25 @@ mod tests {
 
     #[test]
     fn test_kong_backend_strips_trailing_slash() {
-        let backend = KongBackend::new("test-key", "https://kong.example.com/");
+        let backend = KongBackend::try_new("test-key", "https://kong.example.com/").unwrap();
 
         assert_eq!(backend.gateway_url, "https://kong.example.com");
     }
 
     #[test]
     fn test_kong_backend_route_normalization() {
-        let backend = KongBackend::new("test-key", "https://kong.example.com")
+        let backend = KongBackend::try_new("test-key", "https://kong.example.com").unwrap()
             .with_route("/custom/llm/v1/chat/");
 
         assert_eq!(backend.route, "custom/llm/v1/chat");
 
-        let defaulted = KongBackend::new("test-key", "https://kong.example.com").with_route("");
+        let defaulted = KongBackend::try_new("test-key", "https://kong.example.com").unwrap().with_route("");
         assert_eq!(defaulted.route, "llm/v1/chat");
     }
 
     #[test]
     fn test_build_request_basic() {
-        let backend = KongBackend::new("test-key", "https://kong.example.com");
+        let backend = KongBackend::try_new("test-key", "https://kong.example.com").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -519,7 +537,7 @@ mod tests {
 
     #[test]
     fn test_build_headers_uses_apikey() {
-        let backend = KongBackend::new("my-kong-key", "https://kong.example.com");
+        let backend = KongBackend::try_new("my-kong-key", "https://kong.example.com").unwrap();
         let headers = backend.build_headers().unwrap();
 
         // Konnect Key Auth uses "apikey" header, NOT Authorization: Bearer
@@ -529,7 +547,7 @@ mod tests {
 
     #[test]
     fn test_build_request_with_system() {
-        let backend = KongBackend::new("test-key", "https://kong.example.com");
+        let backend = KongBackend::try_new("test-key", "https://kong.example.com").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -558,7 +576,7 @@ mod tests {
 
     #[test]
     fn test_build_request_with_tools() {
-        let backend = KongBackend::new("test-key", "https://kong.example.com");
+        let backend = KongBackend::try_new("test-key", "https://kong.example.com").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -634,7 +652,7 @@ mod tests {
                 .await;
         });
 
-        let backend = KongBackend::new("test-key", server.uri());
+        let backend = KongBackend::try_new("test-key", server.uri().unwrap());
         let response = runtime
             .block_on(backend.chat(ChatRequest {
                 messages: vec![ChatMessage {
@@ -730,7 +748,7 @@ mod tests {
                 .await;
         });
 
-        let backend = KongBackend::new("test-key", server.uri()).with_route("api/llm/chat");
+        let backend = KongBackend::try_new("test-key", server.uri().unwrap()).with_route("api/llm/chat");
         let response = runtime
             .block_on(backend.chat(ChatRequest {
                 messages: vec![ChatMessage {
@@ -757,7 +775,7 @@ mod tests {
 
     #[test]
     fn test_model_override_in_request() {
-        let backend = KongBackend::new("test-key", "https://kong.example.com");
+        let backend = KongBackend::try_new("test-key", "https://kong.example.com").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,

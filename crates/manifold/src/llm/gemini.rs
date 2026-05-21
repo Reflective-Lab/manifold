@@ -30,16 +30,24 @@ pub struct GeminiBackend {
 }
 
 impl GeminiBackend {
-    #[must_use]
-    pub fn new(api_key: impl Into<String>) -> Self {
-        Self {
+    /// REAL-by-default constructor. Rejects empty / whitespace keys so that
+    /// missing or placeholder credentials surface immediately at construction.
+    /// Production code should prefer [`Self::from_env`].
+    pub fn try_new(api_key: impl Into<String>) -> BackendResult<Self> {
+        let api_key: String = api_key.into();
+        if api_key.trim().is_empty() {
+            return Err(BackendError::Unavailable {
+                message: "GEMINI_API_KEY is empty or whitespace".to_string(),
+            });
+        }
+        Ok(Self {
             api_key: SecretString::new(api_key),
             model: "gemini-2.5-flash".to_string(),
             base_url: "https://generativelanguage.googleapis.com".to_string(),
             client: Client::new(),
             temperature: 0.0,
             max_retries: 3,
-        }
+        })
     }
 
     pub fn from_env() -> BackendResult<Self> {
@@ -449,7 +457,7 @@ mod tests {
 
     #[test]
     fn test_gemini_backend_creation() {
-        let backend = GeminiBackend::new("test-key")
+        let backend = GeminiBackend::try_new("test-key").unwrap()
             .with_model("gemini-2.5-pro")
             .with_temperature(0.5);
 
@@ -460,13 +468,13 @@ mod tests {
 
     #[test]
     fn test_default_model() {
-        let backend = GeminiBackend::new("test-key");
+        let backend = GeminiBackend::try_new("test-key").unwrap();
         assert_eq!(backend.model, "gemini-2.5-flash");
     }
 
     #[test]
     fn test_build_url() {
-        let backend = GeminiBackend::new("my-key");
+        let backend = GeminiBackend::try_new("my-key").unwrap();
         let url = backend.build_url("gemini-2.5-flash");
         assert_eq!(
             url,
@@ -476,7 +484,7 @@ mod tests {
 
     #[test]
     fn test_convert_simple_request() {
-        let backend = GeminiBackend::new("test-key");
+        let backend = GeminiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -504,7 +512,7 @@ mod tests {
 
     #[test]
     fn test_convert_with_system_and_assistant() {
-        let backend = GeminiBackend::new("test-key");
+        let backend = GeminiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![
                 ChatMessage {
@@ -548,7 +556,7 @@ mod tests {
 
     #[test]
     fn test_convert_json_response_format() {
-        let backend = GeminiBackend::new("test-key");
+        let backend = GeminiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -574,7 +582,7 @@ mod tests {
 
     #[test]
     fn test_convert_with_tools() {
-        let backend = GeminiBackend::new("test-key");
+        let backend = GeminiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -604,7 +612,7 @@ mod tests {
 
     #[test]
     fn test_request_fingerprint_deterministic() {
-        let backend = GeminiBackend::new("test-key");
+        let backend = GeminiBackend::try_new("test-key").unwrap();
         let request = GeminiRequest {
             system_instruction: None,
             contents: vec![GeminiContent {
@@ -716,7 +724,7 @@ mod tests {
                 .await;
         });
 
-        let backend = GeminiBackend::new("test-key").with_base_url(server.uri());
+        let backend = GeminiBackend::try_new("test-key").unwrap().with_base_url(server.uri());
         let req = ChatRequest {
             messages: vec![
                 ChatMessage {
@@ -780,7 +788,7 @@ mod tests {
 
     #[test]
     fn test_convert_with_assistant_tool_call_history() {
-        let backend = GeminiBackend::new("test-key");
+        let backend = GeminiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![
                 ChatMessage {

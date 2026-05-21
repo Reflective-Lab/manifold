@@ -29,9 +29,17 @@ pub struct AnthropicBackend {
 }
 
 impl AnthropicBackend {
-    #[must_use]
-    pub fn new(api_key: impl Into<String>) -> Self {
-        Self {
+    /// REAL-by-default constructor. Rejects empty / whitespace keys so that
+    /// missing or placeholder credentials surface immediately at construction.
+    /// Production code should prefer [`Self::from_env`].
+    pub fn try_new(api_key: impl Into<String>) -> BackendResult<Self> {
+        let api_key: String = api_key.into();
+        if api_key.trim().is_empty() {
+            return Err(BackendError::Unavailable {
+                message: "ANTHROPIC_API_KEY is empty or whitespace".to_string(),
+            });
+        }
+        Ok(Self {
             api_key: SecretString::new(api_key),
             model: "claude-sonnet-4-6".to_string(),
             base_url: "https://api.anthropic.com".to_string(),
@@ -39,7 +47,7 @@ impl AnthropicBackend {
             temperature: 0.0,
             top_p: 1.0,
             max_retries: 3,
-        }
+        })
     }
 
     pub fn from_env() -> BackendResult<Self> {
@@ -460,7 +468,7 @@ mod tests {
 
     #[test]
     fn test_backend_creation() {
-        let backend = AnthropicBackend::new("test-key")
+        let backend = AnthropicBackend::try_new("test-key").unwrap()
             .with_model("claude-haiku-4-5-20251001")
             .with_temperature(0.5);
         assert_eq!(backend.model, "claude-haiku-4-5-20251001");
@@ -470,7 +478,7 @@ mod tests {
 
     #[test]
     fn test_convert_text_prompt() {
-        let backend = AnthropicBackend::new("test-key");
+        let backend = AnthropicBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -495,7 +503,7 @@ mod tests {
 
     #[test]
     fn test_convert_system_from_messages() {
-        let backend = AnthropicBackend::new("test-key");
+        let backend = AnthropicBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![
                 ChatMessage {
@@ -542,7 +550,7 @@ mod tests {
                 .await;
         });
 
-        let backend = AnthropicBackend::new("test-key").with_base_url(server.uri());
+        let backend = AnthropicBackend::try_new("test-key").unwrap().with_base_url(server.uri());
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -605,7 +613,7 @@ mod tests {
                 .await;
         });
 
-        let backend = AnthropicBackend::new("test-key").with_base_url(server.uri());
+        let backend = AnthropicBackend::try_new("test-key").unwrap().with_base_url(server.uri());
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -656,7 +664,7 @@ mod tests {
                 .await;
         });
 
-        let backend = AnthropicBackend::new("test-key").with_base_url(server.uri());
+        let backend = AnthropicBackend::try_new("test-key").unwrap().with_base_url(server.uri());
         let req = ChatRequest {
             messages: vec![
                 ChatMessage {
@@ -729,7 +737,7 @@ mod tests {
                 .await;
         });
 
-        let backend = AnthropicBackend::new("test-key").with_base_url(server.uri());
+        let backend = AnthropicBackend::try_new("test-key").unwrap().with_base_url(server.uri());
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -777,7 +785,7 @@ mod tests {
                 .await;
         });
 
-        let backend = AnthropicBackend::new("test-key").with_base_url(server.uri());
+        let backend = AnthropicBackend::try_new("test-key").unwrap().with_base_url(server.uri());
         let response = rt
             .block_on(backend.chat(ChatRequest {
                 messages: vec![
@@ -842,7 +850,7 @@ mod tests {
 
     #[test]
     fn test_sampling_params_temperature_wins() {
-        let backend = AnthropicBackend::new("test-key").with_top_p(0.8);
+        let backend = AnthropicBackend::try_new("test-key").unwrap().with_top_p(0.8);
         let request = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -865,7 +873,7 @@ mod tests {
 
     #[test]
     fn test_sampling_params_top_p_fallback() {
-        let backend = AnthropicBackend::new("test-key").with_top_p(0.8);
+        let backend = AnthropicBackend::try_new("test-key").unwrap().with_top_p(0.8);
         let request = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,

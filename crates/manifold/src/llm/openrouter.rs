@@ -36,9 +36,17 @@ pub struct OpenRouterBackend {
 }
 
 impl OpenRouterBackend {
-    #[must_use]
-    pub fn new(api_key: impl Into<String>) -> Self {
-        Self {
+    /// REAL-by-default constructor. Rejects empty / whitespace keys so that
+    /// missing or placeholder credentials surface immediately at construction.
+    /// Production code should prefer [`Self::from_env`].
+    pub fn try_new(api_key: impl Into<String>) -> BackendResult<Self> {
+        let api_key: String = api_key.into();
+        if api_key.trim().is_empty() {
+            return Err(BackendError::Unavailable {
+                message: "OPENROUTER_API_KEY is empty or whitespace".to_string(),
+            });
+        }
+        Ok(Self {
             api_key: SecretString::new(api_key),
             model: "anthropic/claude-sonnet-4".to_string(),
             base_url: "https://openrouter.ai/api".to_string(),
@@ -47,7 +55,7 @@ impl OpenRouterBackend {
             max_retries: 3,
             site_url: String::new(),
             site_name: String::new(),
-        }
+        })
     }
 
     pub fn from_env() -> BackendResult<Self> {
@@ -504,7 +512,7 @@ mod tests {
 
     #[test]
     fn test_openrouter_backend_creation() {
-        let backend = OpenRouterBackend::new("test-key")
+        let backend = OpenRouterBackend::try_new("test-key").unwrap()
             .with_model("openai/gpt-4o")
             .with_temperature(0.5);
 
@@ -516,13 +524,13 @@ mod tests {
 
     #[test]
     fn test_default_model_is_claude() {
-        let backend = OpenRouterBackend::new("test-key");
+        let backend = OpenRouterBackend::try_new("test-key").unwrap();
         assert_eq!(backend.model, "anthropic/claude-sonnet-4");
     }
 
     #[test]
     fn test_build_request_basic() {
-        let backend = OpenRouterBackend::new("test-key");
+        let backend = OpenRouterBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -549,7 +557,7 @@ mod tests {
 
     #[test]
     fn test_build_request_with_tools() {
-        let backend = OpenRouterBackend::new("test-key");
+        let backend = OpenRouterBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -579,7 +587,7 @@ mod tests {
 
     #[test]
     fn test_site_headers_set() {
-        let backend = OpenRouterBackend::new("test-key")
+        let backend = OpenRouterBackend::try_new("test-key").unwrap()
             .with_site_url("https://converge.zone")
             .with_site_name("Converge");
 
@@ -597,7 +605,7 @@ mod tests {
 
     #[test]
     fn test_site_headers_omitted_when_empty() {
-        let backend = OpenRouterBackend::new("test-key");
+        let backend = OpenRouterBackend::try_new("test-key").unwrap();
         let headers = backend.build_headers().unwrap();
 
         assert!(headers.get("HTTP-Referer").is_none());
@@ -645,7 +653,7 @@ mod tests {
                 .await;
         });
 
-        let backend = OpenRouterBackend::new("test-key")
+        let backend = OpenRouterBackend::try_new("test-key").unwrap()
             .with_base_url(server.uri())
             .with_site_url("https://converge.zone")
             .with_site_name("Converge");

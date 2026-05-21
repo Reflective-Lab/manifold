@@ -28,16 +28,24 @@ pub struct StaikBackend {
 }
 
 impl StaikBackend {
-    #[must_use]
-    pub fn new(api_key: impl Into<String>) -> Self {
-        Self {
+    /// REAL-by-default constructor. Rejects empty / whitespace keys so that
+    /// missing or placeholder credentials surface immediately at construction.
+    /// Production code should prefer [`Self::from_env`].
+    pub fn try_new(api_key: impl Into<String>) -> BackendResult<Self> {
+        let api_key: String = api_key.into();
+        if api_key.trim().is_empty() {
+            return Err(BackendError::Unavailable {
+                message: "STAIK_API_KEY is empty or whitespace".to_string(),
+            });
+        }
+        Ok(Self {
             api_key: SecretString::new(api_key),
             model: "gemma4:31b".to_string(),
             base_url: "https://api.staik.se".to_string(),
             client: Client::new(),
             temperature: 0.0,
             max_retries: 3,
-        }
+        })
     }
 
     pub fn from_env() -> BackendResult<Self> {
@@ -387,7 +395,7 @@ mod tests {
 
     #[test]
     fn test_staik_backend_creation() {
-        let backend = StaikBackend::new("sk-st-test")
+        let backend = StaikBackend::try_new("sk-st-test").unwrap()
             .with_model("qwen3.5:9b")
             .with_temperature(0.7);
 
@@ -398,7 +406,7 @@ mod tests {
 
     #[test]
     fn test_build_request_default_model() {
-        let backend = StaikBackend::new("sk-st-test");
+        let backend = StaikBackend::try_new("sk-st-test").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -448,7 +456,7 @@ mod tests {
                 .await;
         });
 
-        let backend = StaikBackend::new("sk-st-test").with_model("gemma4:31b");
+        let backend = StaikBackend::try_new("sk-st-test").unwrap().with_model("gemma4:31b");
         // Override base_url for test
         let mut backend = backend;
         backend.base_url = server.uri();
