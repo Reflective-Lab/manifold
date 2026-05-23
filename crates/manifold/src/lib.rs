@@ -47,6 +47,8 @@ pub mod reranker;
 ))]
 pub mod search;
 pub mod secret;
+#[cfg(feature = "pagination")]
+pub mod pagination;
 #[cfg(feature = "tavily")]
 pub mod tavily;
 #[cfg(feature = "xml")]

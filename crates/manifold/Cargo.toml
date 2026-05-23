@@ -62,6 +62,10 @@ extract = ["dep:scraper"]
 # response parsing and structured XML feeds where consumers want
 # typed-element access without authoring a full schema.
 xml = ["dep:quick-xml"]
+# Closure-driven pagination helper (manifold::pagination). Works with
+# any WebFetchBackend; supports cursor / offset / link-header
+# strategies via caller-supplied advance closures.
+pagination = ["fetch"]
 search-all = ["brave", "tavily", "perplexity", "fetch", "feed"]
 object-local = ["object_store/fs"]
 object-s3 = ["object_store/aws"]
@@ -146,6 +150,11 @@ required-features = ["openrouter"]
 name = "refresh_catalog"
 path = "examples/refresh_catalog.rs"
 required-features = ["_http"]
+
+[[example]]
+name = "streaming_demo"
+path = "examples/streaming_demo.rs"
+required-features = ["openrouter", "streaming"]
 
 [[test]]
 name = "live_search_endpoints"
