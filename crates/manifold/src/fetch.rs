@@ -11,8 +11,8 @@ use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 
 use crate::search::{
-    WebFetchBackend, WebFetchError, WebFetchRequest, WebFetchResponse, reject_non_public_ip,
-    validate_public_http_url,
+    WebFetchBackend, WebFetchError, WebFetchMethod, WebFetchRequest, WebFetchResponse,
+    reject_non_public_ip, validate_public_http_url,
 };
 
 const MAX_REDIRECTS: usize = 10;
@@ -132,9 +132,17 @@ impl WebFetchBackend for HttpFetchProvider {
 
         for redirect_count in 0..=MAX_REDIRECTS {
             let request_headers = caller_headers_for_url(&original_url, &url, &headers);
-            let response = self
-                .client
-                .get(url.clone())
+            let builder = match request.method {
+                WebFetchMethod::Get => self.client.get(url.clone()),
+                WebFetchMethod::Post => {
+                    let mut b = self.client.post(url.clone());
+                    if let Some(body) = request.body.as_ref() {
+                        b = b.body(body.clone());
+                    }
+                    b
+                }
+            };
+            let response = builder
                 .timeout(Duration::from_millis(timeout_ms))
                 .headers(request_headers)
                 .header("User-Agent", &self.user_agent)
@@ -148,6 +156,29 @@ impl WebFetchBackend for HttpFetchProvider {
                 })?;
 
             if response.status().is_redirection() {
+                // Only GET follows redirects automatically. POST + redirect
+                // is ambiguous (RFC 7231 §6.4: 301/302/303 typically
+                // convert POST→GET; 307/308 must preserve method) — keep
+                // the contract honest by surfacing the redirect status
+                // back to the caller instead of guessing.
+                if matches!(request.method, WebFetchMethod::Post) {
+                    let status = response.status().as_u16();
+                    let final_url = response.url().to_string();
+                    let content_type = response
+                        .headers()
+                        .get("content-type")
+                        .and_then(|v| v.to_str().ok())
+                        .map(String::from);
+                    let content_length = response.content_length();
+                    let body = read_bounded_body(response, content_length, max_bytes)?;
+                    return Ok(WebFetchResponse {
+                        url: final_url,
+                        status,
+                        content_type,
+                        body,
+                        truncated: false,
+                    });
+                }
                 if redirect_count == MAX_REDIRECTS {
                     return Err(WebFetchError::Network("too many redirects".into()));
                 }
@@ -338,7 +369,9 @@ mod tests {
 
     #[test]
     fn builder_overrides_user_agent() {
-        let provider = HttpFetchProvider::new().unwrap().with_user_agent("test-agent/1.0");
+        let provider = HttpFetchProvider::new()
+            .unwrap()
+            .with_user_agent("test-agent/1.0");
         assert_eq!(provider.user_agent, "test-agent/1.0");
     }
 }

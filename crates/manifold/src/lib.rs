@@ -11,6 +11,7 @@ pub mod brave;
 #[cfg(any(
     feature = "brave",
     feature = "tavily",
+    feature = "perplexity",
     feature = "fetch",
     feature = "feed"
 ))]
@@ -26,7 +27,13 @@ pub mod feed;
 #[cfg(feature = "fetch")]
 pub mod fetch;
 pub mod llm;
+pub mod cost_routing;
+pub mod fuzzy_fitness;
+#[cfg(feature = "_http")]
+pub mod model_catalog;
 pub mod object_storage;
+#[cfg(feature = "perplexity")]
+pub mod perplexity;
 #[cfg(feature = "registry")]
 pub mod registry_loader;
 #[cfg(feature = "qwen")]
@@ -34,6 +41,7 @@ pub mod reranker;
 #[cfg(any(
     feature = "brave",
     feature = "tavily",
+    feature = "perplexity",
     feature = "fetch",
     feature = "feed"
 ))]
@@ -41,6 +49,8 @@ pub mod search;
 pub mod secret;
 #[cfg(feature = "tavily")]
 pub mod tavily;
+#[cfg(feature = "xml")]
+pub mod xml;
 #[cfg(feature = "tools")]
 pub mod tools;
 pub mod vector;
@@ -55,6 +65,7 @@ pub use brave::{
 #[cfg(any(
     feature = "brave",
     feature = "tavily",
+    feature = "perplexity",
     feature = "fetch",
     feature = "feed"
 ))]
@@ -83,16 +94,19 @@ pub use llm::*;
 #[cfg(any(
     feature = "brave",
     feature = "tavily",
+    feature = "perplexity",
     feature = "fetch",
     feature = "feed"
 ))]
 pub use search::{
     SearchDepth, SearchResponsePart, SearchResponseParts, SearchTopic, WebFetchBackend,
-    WebFetchByteLimit, WebFetchError, WebFetchRequest, WebFetchResponse, WebFetchTimeoutMs,
-    WebFetchUrl, WebSearchBackend, WebSearchError, WebSearchImage, WebSearchRequest,
-    WebSearchResponse, WebSearchResult,
+    WebFetchByteLimit, WebFetchError, WebFetchMethod, WebFetchRequest, WebFetchResponse,
+    WebFetchTimeoutMs, WebFetchUrl, WebSearchBackend, WebSearchError, WebSearchImage,
+    WebSearchRequest, WebSearchResponse, WebSearchResult,
 };
 pub use secret::{EnvSecretProvider, SecretError, SecretProvider, SecretString};
+#[cfg(feature = "perplexity")]
+pub use perplexity::PerplexitySearchProvider;
 #[cfg(feature = "tavily")]
 pub use tavily::TavilySearchProvider;
 #[cfg(feature = "tools")]

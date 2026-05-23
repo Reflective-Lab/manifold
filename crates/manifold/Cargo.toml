@@ -14,6 +14,7 @@ path = "src/lib.rs"
 [dependencies]
 converge-core.workspace = true
 converge-experience.workspace = true
+converge-fuzzy-inference.workspace = true
 converge-pack.workspace = true
 converge-provider.workspace = true
 converge-storage.workspace = true
@@ -50,11 +51,18 @@ urlencoding = { workspace = true, optional = true }
 default = ["object-local"]
 _http = ["dep:reqwest"]
 _chat = []
+# Streaming chat (SSE). Pulls in futures + tokio-stream. Backends opt-in by
+# implementing `StreamingChatBackend` under their feature plus `streaming`.
+streaming = ["_http", "dep:futures", "dep:tokio-stream"]
 registry = []
 fetch = ["_http"]
 feed = ["fetch", "dep:quick-xml"]
 extract = ["dep:scraper"]
-search-all = ["brave", "tavily", "fetch", "feed"]
+# Tag-shaped XML extraction helpers (manifold::xml). Useful for SOAP
+# response parsing and structured XML feeds where consumers want
+# typed-element access without authoring a full schema.
+xml = ["dep:quick-xml"]
+search-all = ["brave", "tavily", "perplexity", "fetch", "feed"]
 object-local = ["object_store/fs"]
 object-s3 = ["object_store/aws"]
 object-gcs = ["object_store/gcp"]
@@ -133,6 +141,11 @@ required-features = ["llm-all"]
 name = "format_matrix"
 path = "examples/format_matrix.rs"
 required-features = ["openrouter"]
+
+[[example]]
+name = "refresh_catalog"
+path = "examples/refresh_catalog.rs"
+required-features = ["_http"]
 
 [[test]]
 name = "live_search_endpoints"

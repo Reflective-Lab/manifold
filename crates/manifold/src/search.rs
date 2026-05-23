@@ -381,11 +381,30 @@ impl<'de> Deserialize<'de> for WebFetchTimeoutMs {
     }
 }
 
+/// HTTP method for a fetch request. GET is the historical default; POST
+/// is needed for SOAP envelopes, JSON-API POST endpoints, and other
+/// services where the request payload doesn't fit in the URL.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum WebFetchMethod {
+    #[default]
+    Get,
+    Post,
+}
+
 /// Request to fetch a single URL.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebFetchRequest {
     /// URL to fetch.
     pub url: WebFetchUrl,
+    /// HTTP method (default: GET).
+    #[serde(default)]
+    pub method: WebFetchMethod,
+    /// Request body. Only meaningful when `method` is `POST`. Stored as a
+    /// `String` so SOAP envelopes and JSON payloads serialize cleanly;
+    /// binary payloads should be base64-encoded by the caller.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
     /// Optional HTTP headers to include on the original origin.
     #[serde(default)]
     pub headers: Vec<(String, String)>,
@@ -409,6 +428,8 @@ impl WebFetchRequest {
     pub fn new(url: impl Into<String>) -> Result<Self, WebFetchError> {
         Ok(Self {
             url: WebFetchUrl::new(url)?,
+            method: WebFetchMethod::Get,
+            body: None,
             headers: Vec::new(),
             max_bytes: default_max_bytes(),
             timeout_ms: default_timeout_ms(),
@@ -429,6 +450,26 @@ impl WebFetchRequest {
     pub fn with_timeout_ms(mut self, timeout_ms: u64) -> Result<Self, WebFetchError> {
         self.timeout_ms = WebFetchTimeoutMs::new(timeout_ms)?;
         Ok(self)
+    }
+
+    /// Set the HTTP method explicitly. Default is `GET`. Used together
+    /// with [`Self::with_body`] for POST requests (SOAP envelopes,
+    /// JSON-API POST endpoints).
+    #[must_use]
+    pub fn with_method(mut self, method: WebFetchMethod) -> Self {
+        self.method = method;
+        self
+    }
+
+    /// Attach a request body and automatically switch to `POST`. Callers
+    /// that need a non-POST method with a body (rare) should call
+    /// [`Self::with_method`] after this. The body is serialized as
+    /// UTF-8 text; binary payloads must be base64-encoded by the caller.
+    #[must_use]
+    pub fn with_body(mut self, body: impl Into<String>) -> Self {
+        self.body = Some(body.into());
+        self.method = WebFetchMethod::Post;
+        self
     }
 }
 
