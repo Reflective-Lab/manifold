@@ -24,6 +24,11 @@ check:
 check-all:
     cargo check --workspace --all-targets --features manifold/all-storage
 
+# Refresh the OpenRouter model catalog cache (~/.cache/manifold/openrouter-catalog.json).
+# Pulls latest pricing and capabilities from https://openrouter.ai/api/v1/models.
+refresh-model-catalog:
+    cargo run -p converge-manifold-adapters --example refresh_catalog --features _http
+
 # Run tests
 test:
     cargo test --workspace --all-targets

@@ -7,8 +7,12 @@ use std::sync::Arc;
 use crate::llm::AnthropicBackend;
 #[cfg(feature = "arcee")]
 use crate::llm::ArceeBackend;
+#[cfg(feature = "deepseek")]
+use crate::llm::DeepSeekBackend;
 #[cfg(feature = "gemini")]
 use crate::llm::GeminiBackend;
+#[cfg(feature = "kimi")]
+use crate::llm::KimiBackend;
 #[cfg(feature = "kong")]
 use crate::llm::KongBackend;
 #[cfg(feature = "minmax")]
@@ -19,6 +23,10 @@ use crate::llm::MistralBackend;
 use crate::llm::OpenAiBackend;
 #[cfg(feature = "openrouter")]
 use crate::llm::OpenRouterBackend;
+#[cfg(feature = "perplexity")]
+use crate::llm::PerplexityBackend;
+#[cfg(feature = "qwen")]
+use crate::llm::QwenBackend;
 #[cfg(feature = "staik")]
 use crate::llm::StaikBackend;
 #[cfg(feature = "writer")]
@@ -152,7 +160,7 @@ fn model_registry_for_config(
     let registry = if let Some(provider) = config.provider_override.as_deref() {
         let provider = normalize_provider_name(provider).ok_or_else(|| LlmError::InvalidRequest {
             message: format!(
-                "Unsupported CONVERGE_LLM_FORCE_PROVIDER={provider}. Expected one of: anthropic, openai, gemini, mistral, arcee, writer, minmax, openrouter, kong, staik."
+                "Unsupported CONVERGE_LLM_FORCE_PROVIDER={provider}. Expected one of: anthropic, openai, gemini, mistral, arcee, writer, minmax, openrouter, kong, staik, deepseek, kimi, perplexity, qwen."
             ),
         })?;
 
@@ -204,6 +212,10 @@ fn chat_provider_registry(secrets: &dyn SecretProvider) -> ProviderRegistry {
         "openrouter",
         "kong",
         "staik",
+        "deepseek",
+        "kimi",
+        "perplexity",
+        "qwen",
     ]
     .into_iter()
     .filter(|provider| is_chat_provider_available(provider, secrets))
@@ -343,6 +355,34 @@ fn instantiate_backend_for_model(
                 .with_model(model);
             Ok(Arc::new(backend))
         }
+        #[cfg(feature = "deepseek")]
+        "deepseek" => {
+            let backend = DeepSeekBackend::from_secret_provider(secrets)
+                .map_err(backend_error)?
+                .with_model(model);
+            Ok(Arc::new(backend))
+        }
+        #[cfg(feature = "kimi")]
+        "kimi" => {
+            let backend = KimiBackend::from_secret_provider(secrets)
+                .map_err(backend_error)?
+                .with_model(model);
+            Ok(Arc::new(backend))
+        }
+        #[cfg(feature = "perplexity")]
+        "perplexity" => {
+            let backend = PerplexityBackend::from_secret_provider(secrets)
+                .map_err(backend_error)?
+                .with_model(model);
+            Ok(Arc::new(backend))
+        }
+        #[cfg(feature = "qwen")]
+        "qwen" => {
+            let backend = QwenBackend::from_secret_provider(secrets)
+                .map_err(backend_error)?
+                .with_model(model);
+            Ok(Arc::new(backend))
+        }
         _ => Err(LlmError::ProviderError {
             message: format!("Selected provider {provider} does not have a chat backend"),
             code: None,
@@ -380,7 +420,15 @@ fn is_chat_provider_available(provider: &str, secrets: &dyn SecretProvider) -> b
         #[cfg(feature = "writer")]
         "writer" => secrets.has_secret("WRITER_API_KEY"),
         #[cfg(feature = "minmax")]
-        "minmax" => secrets.has_secret("MINMAX_API_KEY"),
+        "minmax" => secrets.has_secret("MINIMAX_API_KEY"),
+        #[cfg(feature = "deepseek")]
+        "deepseek" => secrets.has_secret("DEEPSEEK_API_KEY"),
+        #[cfg(feature = "kimi")]
+        "kimi" => secrets.has_secret("KIMI_API_KEY"),
+        #[cfg(feature = "perplexity")]
+        "perplexity" => secrets.has_secret("PERPLEXITY_API_KEY"),
+        #[cfg(feature = "qwen")]
+        "qwen" => secrets.has_secret("QWEN_API_KEY"),
         _ => false,
     }
 }
@@ -397,6 +445,10 @@ fn normalize_provider_name(value: &str) -> Option<&'static str> {
         "arcee" => Some("arcee"),
         "writer" | "palmyra" => Some("writer"),
         "minmax" | "minimax" => Some("minmax"),
+        "deepseek" => Some("deepseek"),
+        "kimi" | "moonshot" => Some("kimi"),
+        "perplexity" | "sonar" => Some("perplexity"),
+        "qwen" | "dashscope" => Some("qwen"),
         _ => None,
     }
 }

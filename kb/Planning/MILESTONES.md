@@ -33,3 +33,26 @@ source: mixed
 
 - [ ] Downstream proof that products register Manifold handles through
       `converge_provider::ChatBackendRegistry`.
+- [ ] Baseten backend (`crates/manifold/src/llm/baseten.rs`) for hosting
+      stock open models and Reflective-branded fine-tunes. Design captured
+      in `kb/Architecture/Baseten Integration.md`. ~30 min implementation
+      when picked up; deferred from 2026-05-23 in favor of completing the
+      cost-aware routing phase first.
+- [ ] Per-domain quality scoring in `ModelMetadata`
+      (`domain_quality: HashMap<String, f64>`) + `AgentRequirements.domain`
+      so a Reflective-branded fine-tune can be picked preferentially for
+      its trained domain without overstating general-purpose quality.
+      Deferred until there's a concrete second Reflective fine-tune to
+      compare against.
+- [ ] `AgentBackend` trait + first implementation
+      (`PerplexityDeepResearchBackend`) for long-running server-side
+      multi-step agents. Design captured in
+      `kb/Architecture/Long-Running Agent Backend.md`. Result type
+      (`AgentArtifact`) shape-mirrors `converge_pack::gate::SolverReport`
+      so artifacts can be wrapped as Converge evidence at the runtime
+      layer. Deferred from 2026-05-23.
+- [ ] Streaming chat backends — `StreamingChatBackend` trait is now
+      defined and `OpenRouterBackend` implements it (gated on the
+      `streaming` feature). Outstanding: implement for `AnthropicBackend`,
+      `OpenAiBackend`, `GeminiBackend`, etc. when downstream UI cases
+      need real-time token rendering.

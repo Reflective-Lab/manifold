@@ -148,6 +148,7 @@ impl OpenAiBackend {
                         .iter()
                         .map(|tool_call| OpenAiResponseToolCall {
                             id: tool_call.id.clone(),
+                            r#type: "function".to_string(),
                             function: OpenAiResponseFunction {
                                 name: tool_call.name.clone(),
                                 arguments: tool_call.arguments.clone(),
@@ -378,7 +379,17 @@ struct OpenAiResponseMessage {
 #[derive(Debug, Serialize, Deserialize)]
 struct OpenAiResponseToolCall {
     id: String,
+    /// OpenAI-compatible APIs require `"type": "function"` on tool_calls in
+    /// outgoing assistant messages. Without it, upstream routers translating
+    /// to Anthropic-native format silently drop the tool_call. See
+    /// `openrouter.rs` for the documented diagnosis (2026-05).
+    #[serde(rename = "type", default = "default_function_type")]
+    r#type: String,
     function: OpenAiResponseFunction,
+}
+
+fn default_function_type() -> String {
+    "function".to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize)]

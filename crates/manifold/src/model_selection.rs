@@ -107,6 +107,15 @@ pub enum RejectionReason {
     ContentGenerationRequired,
     /// Business acumen capability required but not supported.
     BusinessAcumenRequired,
+    /// Estimated cost exceeds the per-request USD budget.
+    OverBudget {
+        /// Estimated request cost in USD (prompt + max completion at live prices).
+        estimated_cost_usd: f64,
+        /// Maximum allowed cost in USD.
+        max_cost_usd: f64,
+    },
+    /// Strict-mode budget rejected this model because it has no pricing data.
+    UnpricedUnderStrictBudget,
 }
 
 impl std::fmt::Display for RejectionReason {
@@ -170,6 +179,18 @@ impl std::fmt::Display for RejectionReason {
             Self::BusinessAcumenRequired => {
                 write!(f, "business acumen required but not supported")
             }
+            Self::OverBudget {
+                estimated_cost_usd,
+                max_cost_usd,
+            } => {
+                write!(
+                    f,
+                    "estimated cost ${estimated_cost_usd:.6} exceeds budget ${max_cost_usd:.6}"
+                )
+            }
+            Self::UnpricedUnderStrictBudget => {
+                write!(f, "no pricing data and strict budget mode is active")
+            }
         }
     }
 }
@@ -217,6 +238,15 @@ pub struct ModelMetadata {
     pub country: String,
     /// Provider's region (e.g., "US", "EU", "CN", "LOCAL").
     pub region: String,
+    /// OpenRouter model ID for cross-referencing live catalog data.
+    /// Format: `"<provider>/<model>"` (e.g., `"anthropic/claude-sonnet-4"`).
+    /// When set, the model catalog can override pricing and capability fields
+    /// at runtime from OpenRouter's published metadata.
+    pub openrouter_id: Option<String>,
+    /// Input token price in USD per million tokens (from live catalog when available).
+    pub pricing_prompt_usd_per_million: Option<f64>,
+    /// Output token price in USD per million tokens (from live catalog when available).
+    pub pricing_completion_usd_per_million: Option<f64>,
 }
 
 impl ModelMetadata {
@@ -250,6 +280,9 @@ impl ModelMetadata {
             supports_business_acumen: false,
             country: "US".to_string(),
             region: "US".to_string(),
+            openrouter_id: None,
+            pricing_prompt_usd_per_million: None,
+            pricing_completion_usd_per_million: None,
         }
     }
 
@@ -345,6 +378,21 @@ impl ModelMetadata {
         self
     }
 
+    /// Sets the OpenRouter model ID for live catalog cross-reference.
+    #[must_use]
+    pub fn with_openrouter_id(mut self, id: impl Into<String>) -> Self {
+        self.openrouter_id = Some(id.into());
+        self
+    }
+
+    /// Sets explicit pricing in USD per million tokens.
+    #[must_use]
+    pub fn with_pricing(mut self, prompt_per_million: f64, completion_per_million: f64) -> Self {
+        self.pricing_prompt_usd_per_million = Some(prompt_per_million);
+        self.pricing_completion_usd_per_million = Some(completion_per_million);
+        self
+    }
+
     /// Checks if this model satisfies the given requirements.
     #[must_use]
     pub fn satisfies(&self, requirements: &AgentRequirements) -> bool {
@@ -433,69 +481,52 @@ impl ModelMetadata {
 
     /// Calculates a fitness score for matching requirements.
     ///
-    /// Higher score = better match. Considers:
-    /// - Cost efficiency (lower cost within allowed range)
-    /// - Latency efficiency (faster within allowed range)
-    /// - Quality (higher is better)
+    /// Returns 0.0 if hard constraints fail; otherwise returns the fuzzy
+    /// preference score in [0.0, 1.0]. See [`crate::fuzzy_fitness`] for the
+    /// linguistic-variable definitions and rule set.
     #[must_use]
     pub fn fitness_score(&self, requirements: &AgentRequirements) -> f64 {
         if !self.satisfies(requirements) {
             return 0.0;
         }
-
-        // Cost efficiency: prefer lower cost (inverted, normalized)
-        let cost_score = match self.cost_class {
-            CostClass::Free | CostClass::VeryLow => 1.0,
-            CostClass::Low => 0.8,
-            CostClass::Medium => 0.6,
-            CostClass::High => 0.4,
-            CostClass::VeryHigh => 0.2,
-        };
-
-        // Latency efficiency: prefer faster (inverted, normalized)
-        let latency_ratio =
-            f64::from(self.typical_latency_ms) / f64::from(requirements.max_latency_ms);
-        let latency_score = 1.0 - latency_ratio.min(1.0);
-
-        // Quality score (already 0.0-1.0)
-        let quality_score = self.quality;
-
-        // Weighted combination
-        // Cost: 40%, Latency: 30%, Quality: 30%
-        0.4 * cost_score + 0.3 * latency_score + 0.3 * quality_score
+        crate::fuzzy_fitness::fitness_summary(self).preference
     }
 
     /// Calculates a detailed fitness breakdown for matching requirements.
     ///
     /// Returns `None` if the model doesn't satisfy requirements.
+    ///
+    /// Field semantics under the fuzzy scoring:
+    /// - `cost_score` = membership in `cost.cheap`
+    /// - `latency_score` = membership in `latency.fast`
+    /// - `quality_score` = membership in `quality.high`
+    /// - `total` = weighted-average preference (0=weak, 0.5=moderate, 1=strong)
     #[must_use]
     pub fn fitness_breakdown(&self, requirements: &AgentRequirements) -> Option<FitnessBreakdown> {
         if !self.satisfies(requirements) {
             return None;
         }
-
-        let cost_score = match self.cost_class {
-            CostClass::Free | CostClass::VeryLow => 1.0,
-            CostClass::Low => 0.8,
-            CostClass::Medium => 0.6,
-            CostClass::High => 0.4,
-            CostClass::VeryHigh => 0.2,
-        };
-
-        let latency_ratio =
-            f64::from(self.typical_latency_ms) / f64::from(requirements.max_latency_ms);
-        let latency_score = 1.0 - latency_ratio.min(1.0);
-
-        let quality_score = self.quality;
-
-        let total = 0.4 * cost_score + 0.3 * latency_score + 0.3 * quality_score;
-
+        let summary = crate::fuzzy_fitness::fitness_summary(self);
         Some(FitnessBreakdown {
-            cost_score,
-            latency_score,
-            quality_score,
-            total,
+            cost_score: summary.cost_cheap,
+            latency_score: summary.latency_fast,
+            quality_score: summary.quality_high,
+            total: summary.preference,
         })
+    }
+
+    /// Returns the IDs of the fuzzy rules that fired for this model under
+    /// the standard selection rule set. Useful for explaining a selection
+    /// decision to humans / governance reviewers.
+    ///
+    /// Returns an empty vec if the model fails hard constraints or if no
+    /// rule fired.
+    #[must_use]
+    pub fn fitness_explanation(&self, requirements: &AgentRequirements) -> Vec<String> {
+        if !self.satisfies(requirements) {
+            return Vec::new();
+        }
+        crate::fuzzy_fitness::fitness_summary(self).activated_rule_ids
     }
 
     /// Determines why this model was rejected for the given requirements.
@@ -731,34 +762,43 @@ impl Default for ModelSelector {
                 ModelMetadata::new("openai", "gpt-4-turbo", CostClass::Medium, 4000, 0.92)
                     .with_reasoning(true),
                 #[cfg(feature = "openai")]
-                ModelMetadata::new("openai", "gpt-5.4-mini", CostClass::Low, 2500, 0.95)
-                    .with_reasoning(true)
-                    .with_web_search(true)
-                    .with_multilingual(true)
-                    .with_context_tokens(1_050_000)
+                ModelMetadata::new("openai", "gpt-4o-mini", CostClass::VeryLow, 1200, 0.82)
                     .with_tool_use(true)
                     .with_vision(true)
                     .with_structured_output(true)
-                    .with_code(true),
-                #[cfg(feature = "openai")]
-                ModelMetadata::new("openai", "gpt-5.4", CostClass::High, 5500, 0.99)
-                    .with_reasoning(true)
-                    .with_web_search(true)
                     .with_multilingual(true)
-                    .with_context_tokens(1_050_000)
+                    .with_context_tokens(128_000)
+                    .with_openrouter_id("openai/gpt-4o-mini"),
+                #[cfg(feature = "openai")]
+                ModelMetadata::new("openai", "gpt-4o", CostClass::Low, 2500, 0.92)
+                    .with_reasoning(true)
                     .with_tool_use(true)
                     .with_vision(true)
                     .with_structured_output(true)
-                    .with_code(true),
-                #[cfg(feature = "openai")]
-                ModelMetadata::new("openai", "gpt-5.4-pro", CostClass::VeryHigh, 11000, 1.00)
-                    .with_reasoning(true)
-                    .with_web_search(true)
+                    .with_code(true)
                     .with_multilingual(true)
-                    .with_context_tokens(1_050_000)
-                    .with_tool_use(true)
-                    .with_vision(true)
-                    .with_code(true),
+                    .with_context_tokens(128_000)
+                    .with_openrouter_id("openai/gpt-4o"),
+                // o1-mini was deprecated by OpenAI in favor of o3-mini; not on OpenRouter.
+                #[cfg(feature = "openai")]
+                ModelMetadata::new("openai", "o1-mini", CostClass::Medium, 8000, 0.92)
+                    .with_reasoning(true)
+                    .with_code(true)
+                    .with_context_tokens(128_000),
+                #[cfg(feature = "openai")]
+                ModelMetadata::new("openai", "o1", CostClass::VeryHigh, 15_000, 0.96)
+                    .with_reasoning(true)
+                    .with_code(true)
+                    .with_structured_output(true)
+                    .with_context_tokens(200_000)
+                    .with_openrouter_id("openai/o1"),
+                #[cfg(feature = "openai")]
+                ModelMetadata::new("openai", "o3-mini", CostClass::Medium, 7000, 0.93)
+                    .with_reasoning(true)
+                    .with_code(true)
+                    .with_structured_output(true)
+                    .with_context_tokens(200_000)
+                    .with_openrouter_id("openai/o3-mini"),
                 // Google Gemini
                 #[cfg(feature = "gemini")]
                 ModelMetadata::new("gemini", "gemini-pro", CostClass::Low, 2000, 0.80)
@@ -790,25 +830,57 @@ impl Default for ModelSelector {
                     .with_reasoning(true)
                     .with_multilingual(true)
                     .with_context_tokens(1_000_000),
-                // Perplexity (web search)
+                // Perplexity (chat with built-in web search)
+                #[cfg(feature = "perplexity")]
+                ModelMetadata::new("perplexity", "sonar", CostClass::VeryLow, 1500, 0.78)
+                    .with_web_search(true)
+                    .with_context_tokens(127_000)
+                    .with_openrouter_id("perplexity/sonar"),
+                #[cfg(feature = "perplexity")]
+                ModelMetadata::new("perplexity", "sonar-pro", CostClass::Low, 2500, 0.88)
+                    .with_web_search(true)
+                    .with_tool_use(true)
+                    .with_context_tokens(200_000)
+                    .with_openrouter_id("perplexity/sonar-pro"),
+                #[cfg(feature = "perplexity")]
+                ModelMetadata::new("perplexity", "sonar-reasoning", CostClass::Medium, 5000, 0.92)
+                    .with_web_search(true)
+                    .with_reasoning(true)
+                    .with_context_tokens(127_000),
                 #[cfg(feature = "perplexity")]
                 ModelMetadata::new(
                     "perplexity",
-                    "pplx-70b-online",
+                    "sonar-reasoning-pro",
                     CostClass::Medium,
-                    4000,
-                    0.90,
+                    6000,
+                    0.94,
                 )
+                .with_web_search(true)
                 .with_reasoning(true)
-                .with_web_search(true),
-                #[cfg(feature = "perplexity")]
-                ModelMetadata::new("perplexity", "pplx-7b-online", CostClass::Low, 2500, 0.75)
-                    .with_web_search(true),
-                // Qwen
+                .with_tool_use(true)
+                .with_context_tokens(200_000)
+                .with_openrouter_id("perplexity/sonar-reasoning-pro"),
+                // Qwen (Alibaba DashScope)
+                // Qwen models accessed via DashScope. Note: qwen-turbo and
+                // qwen-max are DashScope-only and not published on OpenRouter,
+                // so they have no openrouter_id and pricing stays static.
                 #[cfg(feature = "qwen")]
-                ModelMetadata::new("qwen", "qwen-turbo", CostClass::VeryLow, 1500, 0.70),
+                ModelMetadata::new("qwen", "qwen-turbo", CostClass::VeryLow, 1500, 0.72)
+                    .with_tool_use(true)
+                    .with_multilingual(true)
+                    .with_context_tokens(8000),
                 #[cfg(feature = "qwen")]
-                ModelMetadata::new("qwen", "qwen-plus", CostClass::Low, 2500, 0.80),
+                ModelMetadata::new("qwen", "qwen-plus", CostClass::Low, 2500, 0.82)
+                    .with_tool_use(true)
+                    .with_multilingual(true)
+                    .with_context_tokens(32_000)
+                    .with_openrouter_id("qwen/qwen-plus"),
+                #[cfg(feature = "qwen")]
+                ModelMetadata::new("qwen", "qwen-max", CostClass::Medium, 3500, 0.88)
+                    .with_tool_use(true)
+                    .with_structured_output(true)
+                    .with_multilingual(true)
+                    .with_context_tokens(32_000),
                 // OpenRouter — routes to any upstream model via openrouter.ai
                 #[cfg(feature = "openrouter")]
                 ModelMetadata::new(
@@ -895,9 +967,14 @@ impl Default for ModelSelector {
                 .with_code(true)
                 .with_multilingual(true)
                 .with_context_tokens(128_000),
-                // MinMax
+                // MinMax — only MiniMax-Text-01 is currently active; abab series
+                // is deprecated as of late 2025 and rejected by the API.
                 #[cfg(feature = "minmax")]
-                ModelMetadata::new("minmax", "abab5.5-chat", CostClass::Low, 2000, 0.75),
+                ModelMetadata::new("minmax", "MiniMax-Text-01", CostClass::Low, 2500, 0.82)
+                    .with_reasoning(true)
+                    .with_tool_use(true)
+                    .with_structured_output(true)
+                    .with_context_tokens(1_000_000),
                 // Grok
                 #[cfg(feature = "grok")]
                 ModelMetadata::new("grok", "grok-beta", CostClass::Medium, 3000, 0.80),
@@ -932,11 +1009,18 @@ impl Default for ModelSelector {
                 .with_context_tokens(32_000),
                 // DeepSeek
                 #[cfg(feature = "deepseek")]
-                ModelMetadata::new("deepseek", "deepseek-chat", CostClass::VeryLow, 1500, 0.75)
-                    .with_reasoning(true),
+                ModelMetadata::new("deepseek", "deepseek-chat", CostClass::VeryLow, 1500, 0.78)
+                    .with_tool_use(true)
+                    .with_structured_output(true)
+                    .with_code(true)
+                    .with_context_tokens(64_000)
+                    .with_openrouter_id("deepseek/deepseek-chat"),
                 #[cfg(feature = "deepseek")]
-                ModelMetadata::new("deepseek", "deepseek-r1", CostClass::Low, 3000, 0.85)
-                    .with_reasoning(true),
+                ModelMetadata::new("deepseek", "deepseek-reasoner", CostClass::Low, 3500, 0.88)
+                    .with_reasoning(true)
+                    .with_code(true)
+                    .with_context_tokens(64_000)
+                    .with_openrouter_id("deepseek/deepseek-r1"),
                 // Baidu ERNIE (China)
                 #[cfg(feature = "baidu")]
                 ModelMetadata::new("baidu", "ernie-bot", CostClass::Low, 2500, 0.80)
@@ -959,11 +1043,18 @@ impl Default for ModelSelector {
                 // Kimi (Moonshot AI)
                 #[cfg(feature = "kimi")]
                 ModelMetadata::new("kimi", "moonshot-v1-8k", CostClass::Low, 2000, 0.80)
-                    .with_multilingual(true),
+                    .with_multilingual(true)
+                    .with_context_tokens(8_000),
                 #[cfg(feature = "kimi")]
                 ModelMetadata::new("kimi", "moonshot-v1-32k", CostClass::Medium, 3000, 0.85)
                     .with_reasoning(true)
-                    .with_multilingual(true),
+                    .with_multilingual(true)
+                    .with_context_tokens(32_000),
+                #[cfg(feature = "kimi")]
+                ModelMetadata::new("kimi", "moonshot-v1-128k", CostClass::Medium, 4000, 0.86)
+                    .with_reasoning(true)
+                    .with_multilingual(true)
+                    .with_context_tokens(128_000),
                 // Apertus (Switzerland, EU digital sovereignty)
                 #[cfg(feature = "apertus")]
                 ModelMetadata::new("apertus", "apertus-v1", CostClass::Medium, 4000, 0.85)
@@ -1047,12 +1138,12 @@ pub fn is_provider_available(provider: &str) -> bool {
         "gemini" => std::env::var("GEMINI_API_KEY").is_ok(),
         #[cfg(feature = "perplexity")]
         "perplexity" => std::env::var("PERPLEXITY_API_KEY").is_ok(),
-        #[cfg(feature = "openai")]
+        #[cfg(feature = "openrouter")]
         "openrouter" => std::env::var("OPENROUTER_API_KEY").is_ok(),
         #[cfg(feature = "qwen")]
         "qwen" => std::env::var("QWEN_API_KEY").is_ok(),
         #[cfg(feature = "minmax")]
-        "minmax" => std::env::var("MINMAX_API_KEY").is_ok(),
+        "minmax" => std::env::var("MINIMAX_API_KEY").is_ok(),
         #[cfg(feature = "grok")]
         "grok" => std::env::var("GROK_API_KEY").is_ok(),
         #[cfg(feature = "mistral")]
@@ -1182,6 +1273,60 @@ impl ProviderRegistry {
     ) {
         self.metadata_overrides
             .insert((provider.into(), model.into()), metadata);
+    }
+
+    /// Applies pricing and capability data from a live OpenRouter catalog as
+    /// metadata overrides. Each model with an `openrouter_id` gets its pricing
+    /// fields populated from the catalog (when found).
+    ///
+    /// Models without an `openrouter_id` or not present in the catalog are
+    /// left untouched.
+    #[cfg(feature = "_http")]
+    pub fn apply_catalog(&mut self, catalog: &crate::model_catalog::ModelCatalog) {
+        let models = self.base_selector.models.clone();
+        for model in &models {
+            let Some(or_id) = model.openrouter_id.as_deref() else {
+                continue;
+            };
+            let Some(entry) = catalog.get(or_id) else {
+                continue;
+            };
+            let Some((prompt, completion)) = catalog.pricing_per_million(or_id) else {
+                continue;
+            };
+            let mut updated = model.clone();
+            updated.pricing_prompt_usd_per_million = Some(prompt);
+            updated.pricing_completion_usd_per_million = Some(completion);
+            if entry.context_length > 0 {
+                updated.context_tokens = entry.context_length;
+            }
+            // Only flip booleans ON when catalog confirms — never OFF, since our
+            // hand-curated defaults may have correct truths the catalog doesn't expose.
+            if entry.supports_tools() {
+                updated.supports_tool_use = true;
+            }
+            if entry.supports_vision() {
+                updated.supports_vision = true;
+            }
+            if entry.supports_structured_output() {
+                updated.supports_structured_output = true;
+            }
+            if entry.supports_reasoning() {
+                updated.has_reasoning = true;
+            }
+            self.metadata_overrides
+                .insert((model.provider.clone(), model.model.clone()), updated);
+        }
+    }
+
+    /// Like [`Self::from_env`] but additionally applies live pricing and
+    /// capability data from an OpenRouter catalog.
+    #[cfg(feature = "_http")]
+    #[must_use]
+    pub fn from_env_with_catalog(catalog: &crate::model_catalog::ModelCatalog) -> Self {
+        let mut registry = Self::from_env();
+        registry.apply_catalog(catalog);
+        registry
     }
 
     /// Lists all available models that satisfy the requirements.

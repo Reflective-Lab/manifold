@@ -1,6 +1,8 @@
 // Copyright 2024-2026 Reflective Labs
 // SPDX-License-Identifier: MIT
 
+use std::collections::HashMap;
+
 use reqwest::Client;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
@@ -18,7 +20,8 @@ use converge_provider::{
     ToolCall as ChatToolCall,
 };
 
-pub struct StaikBackend {
+/// Kimi (Moonshot AI) backend — OpenAI-compatible chat completions for moonshot-v1-* models (8k/32k/128k context variants).
+pub struct KimiBackend {
     api_key: SecretString,
     model: String,
     base_url: String,
@@ -27,7 +30,7 @@ pub struct StaikBackend {
     max_retries: usize,
 }
 
-impl StaikBackend {
+impl KimiBackend {
     /// REAL-by-default constructor. Rejects empty / whitespace keys so that
     /// missing or placeholder credentials surface immediately at construction.
     /// Production code should prefer [`Self::from_env`].
@@ -35,13 +38,13 @@ impl StaikBackend {
         let api_key: String = api_key.into();
         if api_key.trim().is_empty() {
             return Err(BackendError::Unavailable {
-                message: "STAIK_API_KEY is empty or whitespace".to_string(),
+                message: "KIMI_API_KEY is empty or whitespace".to_string(),
             });
         }
         Ok(Self {
             api_key: SecretString::new(api_key),
-            model: "gemma4:31b".to_string(),
-            base_url: "https://api.staik.se".to_string(),
+            model: "moonshot-v1-8k".to_string(),
+            base_url: "https://api.moonshot.cn".to_string(),
             client: Client::new(),
             temperature: 0.0,
             max_retries: 3,
@@ -55,14 +58,24 @@ impl StaikBackend {
     pub fn from_secret_provider(secrets: &dyn SecretProvider) -> BackendResult<Self> {
         let api_key =
             secrets
-                .get_secret("STAIK_API_KEY")
+                .get_secret("KIMI_API_KEY")
                 .map_err(|e| BackendError::Unavailable {
-                    message: format!("STAIK_API_KEY: {e}"),
+                    message: format!("KIMI_API_KEY: {e}"),
                 })?;
+
+        let model = secrets
+            .get_secret("KIMI_MODEL")
+            .map(|s| s.expose().to_string())
+            .unwrap_or_else(|_| "moonshot-v1-8k".to_string());
+        let base_url = secrets
+            .get_secret("KIMI_BASE_URL")
+            .map(|s| s.expose().to_string())
+            .unwrap_or_else(|_| "https://api.moonshot.cn".to_string());
+
         Ok(Self {
             api_key,
-            model: "gemma4:31b".to_string(),
-            base_url: "https://api.staik.se".to_string(),
+            model,
+            base_url,
             client: Client::new(),
             temperature: 0.0,
             max_retries: 3,
@@ -72,6 +85,12 @@ impl StaikBackend {
     #[must_use]
     pub fn with_model(mut self, model: impl Into<String>) -> Self {
         self.model = model.into();
+        self
+    }
+
+    #[must_use]
+    pub fn with_base_url(mut self, url: impl Into<String>) -> Self {
+        self.base_url = url.into();
         self
     }
 
@@ -97,16 +116,20 @@ impl StaikBackend {
                 message: format!("Invalid API key: {e}"),
             })?,
         );
+
         Ok(headers)
     }
 
-    fn build_request(&self, req: &ChatRequest) -> StaikRequest {
+    fn build_request(&self, req: &ChatRequest) -> KimiRequest {
         let model = req.model.clone().unwrap_or_else(|| self.model.clone());
         let temperature = req.temperature.unwrap_or(self.temperature);
         let max_tokens = req.max_tokens.map(|t| t as usize).unwrap_or(4096);
 
         let mut messages = Vec::new();
 
+        // Append format instruction to system prompt for all structured formats.
+        // JSON also gets native response_format, but OpenAI-compatible APIs require
+        // the word "json" in the messages when using json_object mode.
         let system_content = if let Some(instruction) = req.response_format.system_instruction() {
             let base = req.system.clone().unwrap_or_default();
             Some(format!("{base}\n\n{instruction}"))
@@ -115,7 +138,7 @@ impl StaikBackend {
         };
 
         if let Some(system) = &system_content {
-            messages.push(StaikMessage {
+            messages.push(KimiMessage {
                 role: "system".to_string(),
                 content: Some(system.clone()),
                 tool_calls: None,
@@ -136,12 +159,12 @@ impl StaikBackend {
                 Some(
                     msg.tool_calls
                         .iter()
-                        .map(|tc| StaikResponseToolCall {
-                            id: tc.id.clone(),
+                        .map(|tool_call| KimiResponseToolCall {
+                            id: tool_call.id.clone(),
                             r#type: "function".to_string(),
-                            function: StaikResponseFunction {
-                                name: tc.name.clone(),
-                                arguments: tc.arguments.clone(),
+                            function: KimiResponseFunction {
+                                name: tool_call.name.clone(),
+                                arguments: tool_call.arguments.clone(),
                             },
                         })
                         .collect(),
@@ -152,7 +175,7 @@ impl StaikBackend {
             } else {
                 Some(msg.content.clone())
             };
-            messages.push(StaikMessage {
+            messages.push(KimiMessage {
                 role: role.to_string(),
                 content,
                 tool_calls,
@@ -160,15 +183,15 @@ impl StaikBackend {
             });
         }
 
-        let tools: Option<Vec<StaikTool>> = if req.tools.is_empty() {
+        let tools: Option<Vec<KimiTool>> = if req.tools.is_empty() {
             None
         } else {
             Some(
                 req.tools
                     .iter()
-                    .map(|t| StaikTool {
+                    .map(|t| KimiTool {
                         r#type: "function".to_string(),
-                        function: StaikFunction {
+                        function: KimiFunction {
                             name: t.name.clone(),
                             description: Some(t.description.clone()),
                             parameters: Some(t.parameters.clone()),
@@ -178,6 +201,8 @@ impl StaikBackend {
             )
         };
 
+        // Only JSON has native API-level enforcement; other structured formats
+        // are handled via the system prompt instruction above.
         let response_format = match req.response_format {
             ResponseFormat::Json => Some(serde_json::json!({"type": "json_object"})),
             _ => None,
@@ -189,7 +214,7 @@ impl StaikBackend {
             Some(req.stop_sequences.clone())
         };
 
-        StaikRequest {
+        KimiRequest {
             model,
             messages,
             temperature: Some(temperature),
@@ -201,9 +226,9 @@ impl StaikBackend {
     }
 
     async fn chat_async(&self, req: ChatRequest) -> Result<ChatResponse, ChatLlmError> {
-        let staik_req = self.build_request(&req);
+        let kimi_req = self.build_request(&req);
         let model = req.model.clone().unwrap_or_else(|| self.model.clone());
-        let response = self.execute_with_retries(&model, &staik_req).await?;
+        let response = self.execute_with_retries(&model, &kimi_req).await?;
 
         let choice = response.choices.first();
 
@@ -233,6 +258,8 @@ impl StaikBackend {
             _ => None,
         });
 
+        let metadata = extract_kimi_metadata(&response);
+
         finalize_chat_response(
             &req,
             ChatResponse {
@@ -245,7 +272,7 @@ impl StaikBackend {
                 }),
                 model: Some(response.model),
                 finish_reason,
-                metadata: Default::default(),
+                metadata,
             },
         )
     }
@@ -253,8 +280,8 @@ impl StaikBackend {
     async fn execute_with_retries(
         &self,
         model: &str,
-        request: &StaikRequest,
-    ) -> Result<StaikResponse, ChatLlmError> {
+        request: &KimiRequest,
+    ) -> Result<KimiResponse, ChatLlmError> {
         let url = format!("{}/v1/chat/completions", self.base_url);
         let headers = self.build_headers().map_err(map_backend_error)?;
 
@@ -268,7 +295,7 @@ impl StaikBackend {
                     Ok(response) => {
                         let status = response.status();
                         if status.is_success() {
-                            match response.json::<StaikResponse>().await {
+                            match response.json::<KimiResponse>().await {
                                 Ok(parsed) => RetryOutcome::Success(parsed),
                                 Err(e) => RetryOutcome::Retry(parse_error(e)),
                             }
@@ -288,7 +315,11 @@ impl StaikBackend {
     }
 }
 
-impl ChatBackend for StaikBackend {
+fn extract_kimi_metadata(_response: &KimiResponse) -> HashMap<String, String> {
+    HashMap::new()
+}
+
+impl ChatBackend for KimiBackend {
     type ChatFut<'a>
         = BoxFuture<'a, Result<ChatResponse, ChatLlmError>>
     where
@@ -300,19 +331,19 @@ impl ChatBackend for StaikBackend {
 }
 
 // ============================================================================
-// Staik API Types (OpenAI-compatible)
+// Kimi API Types (OpenAI-compatible)
 // ============================================================================
 
 #[derive(Debug, Serialize)]
-struct StaikRequest {
+struct KimiRequest {
     model: String,
-    messages: Vec<StaikMessage>,
+    messages: Vec<KimiMessage>,
     #[serde(skip_serializing_if = "Option::is_none")]
     temperature: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     max_tokens: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    tools: Option<Vec<StaikTool>>,
+    tools: Option<Vec<KimiTool>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     response_format: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -320,24 +351,24 @@ struct StaikRequest {
 }
 
 #[derive(Debug, Serialize)]
-struct StaikMessage {
+struct KimiMessage {
     role: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    tool_calls: Option<Vec<StaikResponseToolCall>>,
+    tool_calls: Option<Vec<KimiResponseToolCall>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tool_call_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
-struct StaikTool {
+struct KimiTool {
     r#type: String,
-    function: StaikFunction,
+    function: KimiFunction,
 }
 
 #[derive(Debug, Serialize)]
-struct StaikFunction {
+struct KimiFunction {
     name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
@@ -346,26 +377,26 @@ struct StaikFunction {
 }
 
 #[derive(Debug, Deserialize)]
-struct StaikResponse {
+struct KimiResponse {
     model: String,
-    choices: Vec<StaikChoice>,
-    usage: Option<StaikUsage>,
+    choices: Vec<KimiChoice>,
+    usage: Option<KimiUsage>,
 }
 
 #[derive(Debug, Deserialize)]
-struct StaikChoice {
-    message: StaikResponseMessage,
+struct KimiChoice {
+    message: KimiResponseMessage,
     finish_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-struct StaikResponseMessage {
+struct KimiResponseMessage {
     content: Option<String>,
-    tool_calls: Option<Vec<StaikResponseToolCall>>,
+    tool_calls: Option<Vec<KimiResponseToolCall>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct StaikResponseToolCall {
+struct KimiResponseToolCall {
     id: String,
     /// OpenAI-compatible APIs require `"type": "function"` on tool_calls in
     /// outgoing assistant messages. Without it, upstream routers translating
@@ -373,7 +404,7 @@ struct StaikResponseToolCall {
     /// `openrouter.rs` for the documented diagnosis (2026-05).
     #[serde(rename = "type", default = "default_function_type")]
     r#type: String,
-    function: StaikResponseFunction,
+    function: KimiResponseFunction,
 }
 
 fn default_function_type() -> String {
@@ -381,13 +412,13 @@ fn default_function_type() -> String {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct StaikResponseFunction {
+struct KimiResponseFunction {
     name: String,
     arguments: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct StaikUsage {
+struct KimiUsage {
     prompt_tokens: u32,
     completion_tokens: u32,
     total_tokens: u32,
@@ -405,19 +436,26 @@ mod tests {
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[test]
-    fn test_staik_backend_creation() {
-        let backend = StaikBackend::try_new("sk-st-test").unwrap()
-            .with_model("qwen3.5:9b")
-            .with_temperature(0.7);
+    fn test_kimi_backend_creation() {
+        let backend = KimiBackend::try_new("test-key").unwrap()
+            .with_model("moonshot-v1-32k")
+            .with_temperature(0.5);
 
-        assert_eq!(backend.model, "qwen3.5:9b");
-        assert_eq!(backend.temperature, 0.7);
-        assert_eq!(backend.api_key.expose(), "sk-st-test");
+        assert_eq!(backend.model, "moonshot-v1-32k");
+        assert_eq!(backend.temperature, 0.5);
+        assert_eq!(backend.api_key.expose(), "test-key");
+        assert_eq!(backend.base_url, "https://api.moonshot.cn");
     }
 
     #[test]
-    fn test_build_request_default_model() {
-        let backend = StaikBackend::try_new("sk-st-test").unwrap();
+    fn test_default_model_is_moonshot_v1_8k() {
+        let backend = KimiBackend::try_new("test-key").unwrap();
+        assert_eq!(backend.model, "moonshot-v1-8k");
+    }
+
+    #[test]
+    fn test_build_request_basic() {
+        let backend = KimiBackend::try_new("test-key").unwrap();
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -434,14 +472,16 @@ mod tests {
             model: None,
         };
 
-        let staik_req = backend.build_request(&req);
-        assert_eq!(staik_req.model, "gemma4:31b");
-        assert_eq!(staik_req.messages.len(), 1);
-        assert_eq!(staik_req.messages[0].role, "user");
+        let kimi_req = backend.build_request(&req);
+
+        assert_eq!(kimi_req.model, "moonshot-v1-8k");
+        assert_eq!(kimi_req.messages.len(), 1);
+        assert_eq!(kimi_req.messages[0].role, "user");
+        assert!(kimi_req.tools.is_none());
     }
 
     #[test]
-    fn test_chat_happy_path() {
+    fn test_chat_with_mock_server() {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
@@ -452,45 +492,51 @@ mod tests {
             Mock::given(method("POST"))
                 .and(path("/v1/chat/completions"))
                 .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                    "model": "gemma4:31b",
+                    "id": "gen-test",
+                    "model": "moonshot-v1-8k",
                     "choices": [{
-                        "message": {"content": "Hej!", "tool_calls": null},
+                        "message": {
+                            "content": "Hello from Kimi!",
+                            "tool_calls": null
+                        },
                         "finish_reason": "stop"
                     }],
                     "usage": {
-                        "prompt_tokens": 5,
-                        "completion_tokens": 2,
-                        "total_tokens": 7
+                        "prompt_tokens": 10,
+                        "completion_tokens": 5,
+                        "total_tokens": 15
                     }
                 })))
                 .mount(&server)
                 .await;
         });
 
-        let backend = StaikBackend::try_new("sk-st-test").unwrap().with_model("gemma4:31b");
-        // Override base_url for test
-        let mut backend = backend;
-        backend.base_url = server.uri();
+        let backend = KimiBackend::try_new("test-key").unwrap()
+            .with_base_url(server.uri());
 
         let response = runtime
             .block_on(backend.chat(ChatRequest {
                 messages: vec![ChatMessage {
                     role: ChatRole::User,
-                    content: "Hej!".to_string(),
+                    content: "Hello".to_string(),
                     tool_calls: Vec::new(),
                     tool_call_id: None,
                 }],
                 system: None,
                 tools: Vec::new(),
-                response_format: ResponseFormat::Text,
-                max_tokens: Some(16),
-                temperature: Some(0.0),
+                response_format: ResponseFormat::default(),
+                max_tokens: None,
+                temperature: None,
                 stop_sequences: Vec::new(),
                 model: None,
             }))
             .unwrap();
 
-        assert_eq!(response.content, "Hej!");
+        assert_eq!(response.content, "Hello from Kimi!");
         assert_eq!(response.finish_reason, Some(ChatFinishReason::Stop));
+        assert_eq!(response.usage.as_ref().unwrap().total_tokens, 15);
+
+        drop(server);
+        drop(runtime);
     }
 }

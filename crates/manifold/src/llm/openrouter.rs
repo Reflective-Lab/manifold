@@ -201,6 +201,7 @@ impl OpenRouterBackend {
                         .iter()
                         .map(|tool_call| OpenRouterResponseToolCall {
                             id: tool_call.id.clone(),
+                            r#type: "function".to_string(),
                             function: OpenRouterResponseFunction {
                                 name: tool_call.name.clone(),
                                 arguments: tool_call.arguments.clone(),
@@ -465,7 +466,22 @@ struct OpenRouterResponseMessage {
 #[derive(Debug, Serialize, Deserialize)]
 struct OpenRouterResponseToolCall {
     id: String,
+    /// OpenAI-compatible APIs require `"type": "function"` on tool_calls
+    /// in *outgoing* assistant messages (not just responses). Without it,
+    /// some upstream routers (notably Anthropic via Bedrock) silently drop
+    /// the tool_call from the conversation, causing the model to re-call
+    /// the tool instead of consuming the tool result.
+    ///
+    /// `#[serde(default = "default_function_type")]` so deserialization
+    /// tolerates upstreams that omit the field on response; serialization
+    /// always emits it.
+    #[serde(rename = "type", default = "default_function_type")]
+    r#type: String,
     function: OpenRouterResponseFunction,
+}
+
+fn default_function_type() -> String {
+    "function".to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -495,6 +511,427 @@ struct OpenRouterCostDetails {
     upstream_inference_prompt_cost: Option<f64>,
     #[serde(default)]
     upstream_inference_completions_cost: Option<f64>,
+}
+
+// ============================================================================
+// Streaming
+// ============================================================================
+//
+// The streaming impl lives inline here so it can reuse `build_request`,
+// `build_headers`, and the request struct without exposing them publicly.
+// It is gated on both `openrouter` and `streaming` features.
+//
+// Wire format: OpenAI/OpenRouter SSE — each event is `data: <json>\n\n`,
+// with the terminator literal `data: [DONE]\n\n`. Some upstreams send
+// `:keepalive` or other comment lines we silently skip. The final
+// non-DONE chunk carries `usage` when `stream_options.include_usage` is
+// set (we always set it).
+//
+// We deliberately do not pull in `async-stream` or a direct `bytes`
+// dependency: framing is hand-rolled on top of `futures::stream::unfold`
+// using raw `&[u8]` slices from each `reqwest` chunk.
+
+#[cfg(feature = "streaming")]
+mod streaming_impl {
+    use super::*;
+    use crate::llm::{ChatEvent, ChatStream, StreamingChatBackend};
+    use futures::stream::{self, Stream, TryStreamExt};
+    #[cfg(test)]
+    use futures::StreamExt;
+    use std::collections::VecDeque;
+    use std::pin::Pin;
+
+    impl StreamingChatBackend for OpenRouterBackend {
+        fn chat_stream(
+            &self,
+            req: ChatRequest,
+        ) -> Pin<
+            Box<
+                dyn std::future::Future<Output = Result<ChatStream<'_>, ChatLlmError>> + Send + '_,
+            >,
+        > {
+            Box::pin(async move {
+                let mut request_body =
+                    serde_json::to_value(self.build_request(&req)).map_err(|e| {
+                        ChatLlmError::ProviderError {
+                            message: format!("serialize streaming request: {e}"),
+                            code: None,
+                        }
+                    })?;
+                // Inject `"stream": true` and request usage in the final chunk.
+                if let Some(obj) = request_body.as_object_mut() {
+                    obj.insert("stream".to_string(), serde_json::Value::Bool(true));
+                    obj.insert(
+                        "stream_options".to_string(),
+                        serde_json::json!({"include_usage": true}),
+                    );
+                }
+
+                let url = format!("{}/v1/chat/completions", self.base_url);
+                let headers = self.build_headers().map_err(map_backend_error)?;
+
+                let response = self
+                    .client
+                    .post(&url)
+                    .headers(headers)
+                    .json(&request_body)
+                    .send()
+                    .await
+                    .map_err(network_error)?;
+
+                let status = response.status();
+                if !status.is_success() {
+                    let body = response.text().await.unwrap_or_default();
+                    return Err(classify_http_error(
+                        status.as_u16(),
+                        &body,
+                        req.model.as_deref().unwrap_or(self.model.as_str()),
+                    ));
+                }
+
+                // reqwest's `bytes_stream()` yields Result<Bytes, reqwest::Error>.
+                // Convert errors into ChatLlmError and feed into the SSE parser.
+                let byte_stream = response.bytes_stream().map_err(network_error);
+                let event_stream = sse_event_stream(byte_stream);
+                Ok(Box::pin(event_stream) as ChatStream<'_>)
+            })
+        }
+    }
+
+    /// Buffer state for the SSE framing/parsing state machine. One chunk
+    /// can produce zero, one, or many `ChatEvent`s; `pending` queues the
+    /// extras across `poll_next` calls.
+    struct SseState<S> {
+        byte_stream: S,
+        buf: Vec<u8>,
+        pending: VecDeque<ChatEvent>,
+        /// Once we see the literal `[DONE]` sentinel (or upstream EOF),
+        /// flag this so we drain `pending` then end the stream.
+        terminated: bool,
+    }
+
+    /// Convert a byte stream into a stream of fully-parsed `ChatEvent`s.
+    ///
+    /// SSE framing: events are separated by `\n\n`; each event has one
+    /// or more lines, but for OpenAI-compatible APIs we only care about
+    /// the `data:` line. The body is JSON, except for the literal
+    /// `[DONE]` terminator which ends the stream.
+    fn sse_event_stream<S, B>(
+        byte_stream: S,
+    ) -> impl Stream<Item = Result<ChatEvent, ChatLlmError>> + Send
+    where
+        S: Stream<Item = Result<B, ChatLlmError>> + Send + Unpin + 'static,
+        B: AsRef<[u8]> + Send,
+    {
+        let state = SseState {
+            byte_stream,
+            buf: Vec::with_capacity(4096),
+            pending: VecDeque::new(),
+            terminated: false,
+        };
+
+        stream::unfold(state, |mut state| async move {
+            loop {
+                // Drain any queued events from the previous chunk first.
+                if let Some(event) = state.pending.pop_front() {
+                    return Some((Ok(event), state));
+                }
+                if state.terminated {
+                    return None;
+                }
+
+                // Pull the next chunk from upstream.
+                match state.byte_stream.try_next().await {
+                    Ok(Some(chunk)) => {
+                        state.buf.extend_from_slice(chunk.as_ref());
+                        match drain_complete_events(&mut state.buf, &mut state.pending) {
+                            Ok(saw_done) => {
+                                if saw_done {
+                                    state.terminated = true;
+                                }
+                            }
+                            Err(err) => {
+                                state.terminated = true;
+                                return Some((Err(err), state));
+                            }
+                        }
+                        // Loop back to either yield a pending event or
+                        // poll for the next chunk.
+                        continue;
+                    }
+                    Ok(None) => {
+                        // Upstream closed. Try to parse any tail bytes
+                        // that don't end with `\n\n` as a best-effort
+                        // final event, then end the stream.
+                        state.terminated = true;
+                        if !state.buf.is_empty() {
+                            // Treat the leftover as a final pseudo-event.
+                            let tail = std::mem::take(&mut state.buf);
+                            if let Ok(s) = std::str::from_utf8(&tail) {
+                                if let Some(data) = extract_data_line(s) {
+                                    if data.trim() != "[DONE]" {
+                                        for event in parse_openai_delta(data) {
+                                            state.pending.push_back(event);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        continue;
+                    }
+                    Err(err) => {
+                        state.terminated = true;
+                        return Some((Err(err), state));
+                    }
+                }
+            }
+        })
+    }
+
+    /// Parse every complete SSE event currently in `buf`, enqueueing
+    /// resulting `ChatEvent`s into `pending`. Returns Ok(true) if we
+    /// observed the `[DONE]` terminator (caller should stop polling
+    /// upstream), Ok(false) otherwise.
+    fn drain_complete_events(
+        buf: &mut Vec<u8>,
+        pending: &mut VecDeque<ChatEvent>,
+    ) -> Result<bool, ChatLlmError> {
+        let mut saw_done = false;
+        while let Some(pos) = find_event_terminator(buf) {
+            let event_bytes: Vec<u8> = buf.drain(..pos + 2).collect();
+            // Strip the trailing `\n\n` before decoding.
+            let payload_len = event_bytes.len().saturating_sub(2);
+            let event_str = std::str::from_utf8(&event_bytes[..payload_len]).map_err(|e| {
+                ChatLlmError::ProviderError {
+                    message: format!("invalid utf-8 in SSE event: {e}"),
+                    code: None,
+                }
+            })?;
+            let Some(data) = extract_data_line(event_str) else {
+                continue;
+            };
+            if data.trim() == "[DONE]" {
+                saw_done = true;
+                break;
+            }
+            for event in parse_openai_delta(data) {
+                pending.push_back(event);
+            }
+        }
+        Ok(saw_done)
+    }
+
+    fn find_event_terminator(buf: &[u8]) -> Option<usize> {
+        buf.windows(2).position(|w| w == b"\n\n")
+    }
+
+    /// Extract the `data:` payload from a single SSE event (which may be
+    /// multiple lines, e.g. a `:keepalive` comment line plus a `data:` line).
+    fn extract_data_line(event: &str) -> Option<&str> {
+        for line in event.split('\n') {
+            // Strip a trailing `\r` for CRLF-framed streams.
+            let line = line.strip_suffix('\r').unwrap_or(line);
+            if let Some(rest) = line.strip_prefix("data: ") {
+                return Some(rest);
+            }
+            if let Some(rest) = line.strip_prefix("data:") {
+                return Some(rest.trim_start());
+            }
+        }
+        None
+    }
+
+    /// Parse one OpenAI-style streaming delta into zero or more ChatEvents.
+    fn parse_openai_delta(data: &str) -> Vec<ChatEvent> {
+        let parsed: serde_json::Value = match serde_json::from_str(data) {
+            Ok(v) => v,
+            Err(_) => return Vec::new(),
+        };
+        let mut events = Vec::new();
+        if let Some(choices) = parsed.get("choices").and_then(|v| v.as_array()) {
+            for choice in choices {
+                if let Some(delta) = choice.get("delta") {
+                    if let Some(text) = delta.get("content").and_then(|v| v.as_str()) {
+                        if !text.is_empty() {
+                            events.push(ChatEvent::TextDelta(text.to_string()));
+                        }
+                    }
+                    if let Some(tool_calls) = delta.get("tool_calls").and_then(|v| v.as_array()) {
+                        for tc in tool_calls {
+                            let index =
+                                tc.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+                            let id = tc
+                                .get("id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            if let Some(function) = tc.get("function") {
+                                if let Some(name) =
+                                    function.get("name").and_then(|v| v.as_str())
+                                {
+                                    events.push(ChatEvent::ToolCallStart {
+                                        id: id.clone(),
+                                        name: name.to_string(),
+                                        index,
+                                    });
+                                }
+                                if let Some(args) =
+                                    function.get("arguments").and_then(|v| v.as_str())
+                                {
+                                    if !args.is_empty() {
+                                        events.push(ChatEvent::ToolCallArgsDelta {
+                                            id: id.clone(),
+                                            index,
+                                            args_delta: args.to_string(),
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if let Some(reason) = choice.get("finish_reason").and_then(|v| v.as_str()) {
+                    let mapped = match reason {
+                        "stop" => Some(ChatFinishReason::Stop),
+                        "length" => Some(ChatFinishReason::Length),
+                        "tool_calls" => Some(ChatFinishReason::ToolCalls),
+                        "content_filter" => Some(ChatFinishReason::ContentFilter),
+                        _ => None,
+                    };
+                    if let Some(r) = mapped {
+                        events.push(ChatEvent::Finish(r));
+                    }
+                }
+            }
+        }
+        if let Some(usage) = parsed.get("usage") {
+            let prompt = usage
+                .get("prompt_tokens")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0) as u32;
+            let completion = usage
+                .get("completion_tokens")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0) as u32;
+            let total = usage
+                .get("total_tokens")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0) as u32;
+            if total > 0 {
+                events.push(ChatEvent::Usage(ChatTokenUsage {
+                    prompt_tokens: prompt,
+                    completion_tokens: completion,
+                    total_tokens: total,
+                }));
+            }
+        }
+        events
+    }
+
+    #[cfg(test)]
+    mod streaming_tests {
+        use super::*;
+
+        #[test]
+        fn extract_data_line_strips_prefix_with_space() {
+            let event = "data: {\"hello\":1}";
+            assert_eq!(extract_data_line(event), Some("{\"hello\":1}"));
+        }
+
+        #[test]
+        fn extract_data_line_strips_prefix_without_space() {
+            let event = "data:{\"hello\":1}";
+            assert_eq!(extract_data_line(event), Some("{\"hello\":1}"));
+        }
+
+        #[test]
+        fn extract_data_line_skips_comment() {
+            let event = ":keepalive\ndata: payload";
+            assert_eq!(extract_data_line(event), Some("payload"));
+        }
+
+        #[test]
+        fn parse_delta_emits_text() {
+            let data = r#"{"choices":[{"delta":{"content":"hi"}}]}"#;
+            let events = parse_openai_delta(data);
+            assert!(matches!(events.as_slice(), [ChatEvent::TextDelta(s)] if s == "hi"));
+        }
+
+        #[test]
+        fn parse_delta_emits_finish() {
+            let data = r#"{"choices":[{"delta":{},"finish_reason":"stop"}]}"#;
+            let events = parse_openai_delta(data);
+            assert!(matches!(
+                events.as_slice(),
+                [ChatEvent::Finish(ChatFinishReason::Stop)]
+            ));
+        }
+
+        #[test]
+        fn parse_delta_emits_usage() {
+            let data = r#"{"choices":[],"usage":{"prompt_tokens":3,"completion_tokens":5,"total_tokens":8}}"#;
+            let events = parse_openai_delta(data);
+            assert!(matches!(
+                events.as_slice(),
+                [ChatEvent::Usage(u)]
+                    if u.prompt_tokens == 3 && u.completion_tokens == 5 && u.total_tokens == 8
+            ));
+        }
+
+        #[test]
+        fn parse_delta_ignores_unknown_finish_reason() {
+            let data = r#"{"choices":[{"delta":{},"finish_reason":"weird"}]}"#;
+            assert!(parse_openai_delta(data).is_empty());
+        }
+
+        #[test]
+        fn parse_delta_emits_tool_call_chunks() {
+            let data = r#"{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","function":{"name":"get_weather","arguments":"{\"ci"}}]}}]}"#;
+            let events = parse_openai_delta(data);
+            assert_eq!(events.len(), 2);
+            assert!(matches!(
+                &events[0],
+                ChatEvent::ToolCallStart { id, name, index } if id == "call_1" && name == "get_weather" && *index == 0
+            ));
+            assert!(matches!(
+                &events[1],
+                ChatEvent::ToolCallArgsDelta { args_delta, .. } if args_delta == "{\"ci"
+            ));
+        }
+
+        #[test]
+        fn find_terminator_locates_double_newline() {
+            assert_eq!(find_event_terminator(b"abc\n\ndef"), Some(3));
+            assert_eq!(find_event_terminator(b"no-term"), None);
+        }
+
+        #[tokio::test]
+        async fn sse_event_stream_parses_simple_stream() {
+            // Compose a chunk stream that splits an event across chunks
+            // and includes the terminator.
+            let chunks: Vec<Result<Vec<u8>, ChatLlmError>> = vec![
+                Ok(b"data: {\"choices\":[{\"delta\":{\"content\":\"He".to_vec()),
+                Ok(b"llo\"}}]}\n\n".to_vec()),
+                Ok(
+                    b"data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"
+                        .to_vec(),
+                ),
+                Ok(b"data: [DONE]\n\n".to_vec()),
+            ];
+            let upstream = futures::stream::iter(chunks);
+            let mut events = Box::pin(sse_event_stream(upstream));
+            let mut collected = Vec::new();
+            while let Some(evt) = events.next().await {
+                collected.push(evt.unwrap());
+            }
+            assert_eq!(collected.len(), 2);
+            assert!(matches!(&collected[0], ChatEvent::TextDelta(s) if s == "Hello"));
+            assert!(matches!(
+                &collected[1],
+                ChatEvent::Finish(ChatFinishReason::Stop)
+            ));
+        }
+    }
 }
 
 // ============================================================================

@@ -30,12 +30,16 @@
 mod anthropic;
 #[cfg(feature = "arcee")]
 mod arcee;
+#[cfg(feature = "deepseek")]
+mod deepseek;
 #[cfg(feature = "_chat")]
 mod error_classification;
 #[cfg(feature = "_chat")]
 mod format_contract;
 #[cfg(feature = "gemini")]
 mod gemini;
+#[cfg(feature = "kimi")]
+mod kimi;
 #[cfg(feature = "kong")]
 mod kong;
 #[cfg(feature = "minmax")]
@@ -46,6 +50,10 @@ mod mistral;
 mod openai;
 #[cfg(feature = "openrouter")]
 mod openrouter;
+#[cfg(feature = "perplexity")]
+mod perplexity;
+#[cfg(feature = "qwen")]
+mod qwen;
 mod resilient;
 #[cfg(feature = "_chat")]
 mod retry;
@@ -53,6 +61,8 @@ mod retry;
 mod selection;
 #[cfg(feature = "staik")]
 mod staik;
+#[cfg(feature = "streaming")]
+mod streaming;
 #[cfg(feature = "writer")]
 mod writer;
 
@@ -61,8 +71,12 @@ pub use anthropic::AnthropicBackend;
 #[cfg(feature = "arcee")]
 pub use arcee::ArceeBackend;
 pub use converge_provider::{ChatBackendSelectionConfig, ChatBackendSelectionConfigError};
+#[cfg(feature = "deepseek")]
+pub use deepseek::DeepSeekBackend;
 #[cfg(feature = "gemini")]
 pub use gemini::GeminiBackend;
+#[cfg(feature = "kimi")]
+pub use kimi::KimiBackend;
 #[cfg(feature = "kong")]
 pub use kong::KongBackend;
 #[cfg(feature = "minmax")]
@@ -73,6 +87,10 @@ pub use mistral::MistralBackend;
 pub use openai::OpenAiBackend;
 #[cfg(feature = "openrouter")]
 pub use openrouter::OpenRouterBackend;
+#[cfg(feature = "perplexity")]
+pub use perplexity::PerplexityBackend;
+#[cfg(feature = "qwen")]
+pub use qwen::QwenBackend;
 pub use resilient::ResilientChatBackend;
 #[cfg(feature = "_chat")]
 pub use selection::{
@@ -81,5 +99,7 @@ pub use selection::{
 };
 #[cfg(feature = "staik")]
 pub use staik::StaikBackend;
+#[cfg(feature = "streaming")]
+pub use streaming::{ChatEvent, ChatStream, StreamingChatBackend};
 #[cfg(feature = "writer")]
 pub use writer::WriterBackend;

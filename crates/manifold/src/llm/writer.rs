@@ -27,7 +27,7 @@ impl WriterBackend {
                     message: format!("WRITER_API_KEY: {e}"),
                 })?;
         Ok(Self {
-            inner: OpenAiBackend::new(api_key.expose().to_string())
+            inner: OpenAiBackend::try_new(api_key.expose().to_string())?
                 .with_base_url("https://api.writer.com/v1")
                 .with_model("palmyra-x5"),
         })
