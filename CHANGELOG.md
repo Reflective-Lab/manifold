@@ -7,6 +7,12 @@ Versioning before 1.0 with the usual pre-1.0 compatibility caveats.
 
 ## [Unreleased]
 
+### Fixed
+
+- `select_chat_backend` now reports `SelectedChatBackend::provider()` and
+  `::model()` from the backend actually resolved by `ChatBackendRegistry`, so
+  downstream provenance cannot pair one provider with another provider's model.
+
 ## [1.1.1] - 2026-05-17
 
 ### Changed

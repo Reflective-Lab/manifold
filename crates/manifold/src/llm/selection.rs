@@ -73,10 +73,28 @@ pub fn select_chat_backend_with_secret_provider(
         model_registry.select_with_details(&registry_config.criteria.to_agent_requirements())?;
     let chat_registry = chat_backend_registry_from_candidates(&selection.candidates, secrets)?;
     let resolved = chat_registry.select(&registry_config)?;
+    let selection =
+        selection_for_resolved_backend(selection, resolved.provider(), resolved.model());
     Ok(SelectedChatBackend {
         backend: resolved.backend(),
         selection,
     })
+}
+
+fn selection_for_resolved_backend(
+    mut selection: SelectionResult,
+    provider: &str,
+    model: &str,
+) -> SelectionResult {
+    if let Some((metadata, fitness)) = selection
+        .candidates
+        .iter()
+        .find(|(metadata, _)| metadata.provider == provider && metadata.model == model)
+    {
+        selection.selected = metadata.clone();
+        selection.fitness = fitness.clone();
+    }
+    selection
 }
 
 /// Selects a chat backend with health probing — iterates ranked candidates and
@@ -455,9 +473,13 @@ fn normalize_provider_name(value: &str) -> Option<&'static str> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ChatBackendSelectionConfig, select_chat_backend_with_secret_provider};
+    use super::{
+        ChatBackendSelectionConfig, select_chat_backend_with_secret_provider,
+        selection_for_resolved_backend,
+    };
+    use crate::model_selection::{FitnessBreakdown, ModelMetadata, SelectionResult};
     use crate::secret::{SecretError, SecretProvider, StaticSecretProvider};
-    use converge_core::model_selection::{RequiredCapabilities, SelectionCriteria};
+    use converge_core::model_selection::CostClass;
 
     #[derive(Debug, Default)]
     struct MissingSecretProvider;
@@ -491,6 +513,42 @@ mod tests {
     }
 
     #[test]
+    fn selection_result_tracks_backend_resolved_by_chat_registry() {
+        let anthropic =
+            ModelMetadata::new("anthropic", "claude-sonnet-4-6", CostClass::Low, 2500, 0.93);
+        let gemini =
+            ModelMetadata::new("gemini", "gemini-2.5-flash", CostClass::VeryLow, 800, 0.84);
+        let anthropic_fitness = FitnessBreakdown {
+            cost_score: 0.8,
+            latency_score: 0.5,
+            quality_score: 0.93,
+            total: 0.75,
+        };
+        let gemini_fitness = FitnessBreakdown {
+            cost_score: 1.0,
+            latency_score: 0.84,
+            quality_score: 0.84,
+            total: 0.9,
+        };
+
+        let selection = SelectionResult {
+            selected: anthropic.clone(),
+            fitness: anthropic_fitness.clone(),
+            candidates: vec![
+                (anthropic, anthropic_fitness),
+                (gemini.clone(), gemini_fitness.clone()),
+            ],
+            rejected: vec![],
+        };
+
+        let selection = selection_for_resolved_backend(selection, "gemini", "gemini-2.5-flash");
+
+        assert_eq!(selection.selected.provider, "gemini");
+        assert_eq!(selection.selected.model, "gemini-2.5-flash");
+        assert_eq!(selection.fitness, gemini_fitness);
+    }
+
+    #[test]
     #[cfg(any(
         feature = "anthropic",
         feature = "openai",
@@ -499,6 +557,8 @@ mod tests {
         feature = "openrouter"
     ))]
     fn capability_driven_selection_stays_with_instantiable_backends() {
+        use converge_core::model_selection::{RequiredCapabilities, SelectionCriteria};
+
         let config = ChatBackendSelectionConfig::default().with_criteria(
             SelectionCriteria::analysis().with_capabilities(
                 RequiredCapabilities::none()
