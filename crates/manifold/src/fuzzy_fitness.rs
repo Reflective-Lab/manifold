@@ -44,7 +44,10 @@ const PREFERENCE_VAR: &str = "preference";
 pub fn fuzzy_fitness(metadata: &ModelMetadata) -> Option<FuzzyInferenceOutput> {
     let inputs = BTreeMap::from([
         (COST_VAR.to_string(), cost_proxy_usd_per_million(metadata)),
-        (LATENCY_VAR.to_string(), f64::from(metadata.typical_latency_ms)),
+        (
+            LATENCY_VAR.to_string(),
+            f64::from(metadata.typical_latency_ms),
+        ),
         (QUALITY_VAR.to_string(), metadata.quality),
     ]);
 
@@ -124,7 +127,11 @@ pub fn fitness_summary(metadata: &ModelMetadata) -> FitnessSummary {
         cost_cheap: input_membership(&output, COST_VAR, "cheap"),
         latency_fast: input_membership(&output, LATENCY_VAR, "fast"),
         quality_high: input_membership(&output, QUALITY_VAR, "high"),
-        activated_rule_ids: output.activated_rules.iter().map(|r| r.id.clone()).collect(),
+        activated_rule_ids: output
+            .activated_rules
+            .iter()
+            .map(|r| r.id.clone())
+            .collect(),
     }
 }
 
@@ -367,7 +374,13 @@ mod tests {
     use super::*;
     use converge_provider::selection::{ComplianceLevel, DataSovereignty};
 
-    fn meta(provider: &str, model: &str, cost: CostClass, latency: u32, quality: f64) -> ModelMetadata {
+    fn meta(
+        provider: &str,
+        model: &str,
+        cost: CostClass,
+        latency: u32,
+        quality: f64,
+    ) -> ModelMetadata {
         ModelMetadata::new(provider, model, cost, latency, quality)
     }
 

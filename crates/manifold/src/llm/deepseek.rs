@@ -437,7 +437,8 @@ mod tests {
 
     #[test]
     fn test_deepseek_backend_creation() {
-        let backend = DeepSeekBackend::try_new("test-key").unwrap()
+        let backend = DeepSeekBackend::try_new("test-key")
+            .unwrap()
             .with_model("deepseek-reasoner")
             .with_temperature(0.5);
 
@@ -511,7 +512,8 @@ mod tests {
                 .await;
         });
 
-        let backend = DeepSeekBackend::try_new("test-key").unwrap()
+        let backend = DeepSeekBackend::try_new("test-key")
+            .unwrap()
             .with_base_url(server.uri());
 
         let response = runtime

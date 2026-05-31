@@ -32,8 +32,7 @@ async fn main() -> ExitCode {
         }
     };
 
-    let prompt =
-        "Write a 5-line haiku-style verse about an LLM streaming tokens to a terminal. \
+    let prompt = "Write a 5-line haiku-style verse about an LLM streaming tokens to a terminal. \
          Output the verse only, one line per stanza-line. No preamble.";
     let request = ChatRequest {
         messages: vec![ChatMessage {

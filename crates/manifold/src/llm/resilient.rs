@@ -270,7 +270,7 @@ mod tests {
         fn rate_limited() -> Self {
             Self {
                 error: LlmError::RateLimited {
-                    retry_after: std::time::Duration::from_secs(60),
+                    retry_after: std::time::Duration::from_mins(1),
                     message: Some("rate limited".into()),
                 },
             }

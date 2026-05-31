@@ -437,7 +437,8 @@ mod tests {
 
     #[test]
     fn test_kimi_backend_creation() {
-        let backend = KimiBackend::try_new("test-key").unwrap()
+        let backend = KimiBackend::try_new("test-key")
+            .unwrap()
             .with_model("moonshot-v1-32k")
             .with_temperature(0.5);
 
@@ -511,7 +512,8 @@ mod tests {
                 .await;
         });
 
-        let backend = KimiBackend::try_new("test-key").unwrap()
+        let backend = KimiBackend::try_new("test-key")
+            .unwrap()
             .with_base_url(server.uri());
 
         let response = runtime

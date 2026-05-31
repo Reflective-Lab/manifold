@@ -244,15 +244,12 @@ mod tests {
     fn stops_when_advance_returns_none() {
         // Intent: a typical small-result paginated response that fits
         // on one page must return one page and stop — no extra fetch.
-        let backend = ScriptedBackend::new(vec![json_response("https://x", r#"{"items":[1,2],"next":null}"#)]);
+        let backend = ScriptedBackend::new(vec![json_response(
+            "https://x",
+            r#"{"items":[1,2],"next":null}"#,
+        )]);
         let initial = WebFetchRequest::new("https://x").unwrap();
-        let pages = paginate(
-            &backend,
-            initial,
-            |_| None,
-            PaginationConfig::default(),
-        )
-        .unwrap();
+        let pages = paginate(&backend, initial, |_| None, PaginationConfig::default()).unwrap();
         assert_eq!(pages.len(), 1);
         assert_eq!(backend.url_count(), 1);
     }
@@ -304,11 +301,7 @@ mod tests {
         let err = paginate(
             &backend,
             initial,
-            |_| {
-                Some(
-                    WebFetchRequest::new("https://x").map_err(|e| e.to_string()),
-                )
-            },
+            |_| Some(WebFetchRequest::new("https://x").map_err(|e| e.to_string())),
             PaginationConfig::default()
                 .with_max_pages(2)
                 .with_politeness_delay(Duration::ZERO),

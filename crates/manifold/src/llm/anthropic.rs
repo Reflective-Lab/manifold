@@ -468,7 +468,8 @@ mod tests {
 
     #[test]
     fn test_backend_creation() {
-        let backend = AnthropicBackend::try_new("test-key").unwrap()
+        let backend = AnthropicBackend::try_new("test-key")
+            .unwrap()
             .with_model("claude-haiku-4-5-20251001")
             .with_temperature(0.5);
         assert_eq!(backend.model, "claude-haiku-4-5-20251001");
@@ -550,7 +551,9 @@ mod tests {
                 .await;
         });
 
-        let backend = AnthropicBackend::try_new("test-key").unwrap().with_base_url(server.uri());
+        let backend = AnthropicBackend::try_new("test-key")
+            .unwrap()
+            .with_base_url(server.uri());
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -613,7 +616,9 @@ mod tests {
                 .await;
         });
 
-        let backend = AnthropicBackend::try_new("test-key").unwrap().with_base_url(server.uri());
+        let backend = AnthropicBackend::try_new("test-key")
+            .unwrap()
+            .with_base_url(server.uri());
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -664,7 +669,9 @@ mod tests {
                 .await;
         });
 
-        let backend = AnthropicBackend::try_new("test-key").unwrap().with_base_url(server.uri());
+        let backend = AnthropicBackend::try_new("test-key")
+            .unwrap()
+            .with_base_url(server.uri());
         let req = ChatRequest {
             messages: vec![
                 ChatMessage {
@@ -737,7 +744,9 @@ mod tests {
                 .await;
         });
 
-        let backend = AnthropicBackend::try_new("test-key").unwrap().with_base_url(server.uri());
+        let backend = AnthropicBackend::try_new("test-key")
+            .unwrap()
+            .with_base_url(server.uri());
         let req = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -785,7 +794,9 @@ mod tests {
                 .await;
         });
 
-        let backend = AnthropicBackend::try_new("test-key").unwrap().with_base_url(server.uri());
+        let backend = AnthropicBackend::try_new("test-key")
+            .unwrap()
+            .with_base_url(server.uri());
         let response = rt
             .block_on(backend.chat(ChatRequest {
                 messages: vec![
@@ -850,7 +861,9 @@ mod tests {
 
     #[test]
     fn test_sampling_params_temperature_wins() {
-        let backend = AnthropicBackend::try_new("test-key").unwrap().with_top_p(0.8);
+        let backend = AnthropicBackend::try_new("test-key")
+            .unwrap()
+            .with_top_p(0.8);
         let request = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,
@@ -873,7 +886,9 @@ mod tests {
 
     #[test]
     fn test_sampling_params_top_p_fallback() {
-        let backend = AnthropicBackend::try_new("test-key").unwrap().with_top_p(0.8);
+        let backend = AnthropicBackend::try_new("test-key")
+            .unwrap()
+            .with_top_p(0.8);
         let request = ChatRequest {
             messages: vec![ChatMessage {
                 role: ChatRole::User,

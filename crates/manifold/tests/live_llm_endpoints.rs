@@ -160,9 +160,7 @@ fn assert_json_status_ok(response: &ChatResponse, provider: &str) {
         .unwrap_or(trimmed)
         .trim();
     let parsed: serde_json::Value = serde_json::from_str(json_str).unwrap_or_else(|e| {
-        panic!(
-            "[{provider}] response was not valid JSON.\nraw=`{trimmed}`\nerror={e}"
-        )
+        panic!("[{provider}] response was not valid JSON.\nraw=`{trimmed}`\nerror={e}")
     });
     let status = parsed.get("status").and_then(|v| v.as_str()).unwrap_or("");
     assert!(
@@ -185,9 +183,7 @@ fn assert_response_is_valid_json(response: &ChatResponse, provider: &str) {
         .unwrap_or(trimmed)
         .trim();
     serde_json::from_str::<serde_json::Value>(json_str).unwrap_or_else(|e| {
-        panic!(
-            "[{provider}] response was not valid JSON.\nraw=`{trimmed}`\nerror={e}"
-        )
+        panic!("[{provider}] response was not valid JSON.\nraw=`{trimmed}`\nerror={e}")
     });
 }
 
@@ -299,10 +295,7 @@ fn selection_config_for(provider: &str) -> ChatBackendSelectionConfig {
     // can't satisfy the default `interactive()` criteria (which require
     // CostTier::Minimal). Use `analysis()` instead — it's still strict
     // enough to exercise the live API meaningfully.
-    if matches!(
-        provider,
-        "gemini" | "mistral" | "minmax" | "kimi"
-    ) {
+    if matches!(provider, "gemini" | "mistral" | "minmax" | "kimi") {
         config = config.with_criteria(SelectionCriteria::analysis());
     }
     config
@@ -478,7 +471,9 @@ async fn live_kong_happy_path_multiturn() {
 #[tokio::test(flavor = "current_thread")]
 #[ignore = "requires live API access"]
 async fn live_openai_invalid_key_is_auth_denied() {
-    let backend = OpenAiBackend::try_new("converge-invalid-openai-key").unwrap().with_max_retries(0);
+    let backend = OpenAiBackend::try_new("converge-invalid-openai-key")
+        .unwrap()
+        .with_max_retries(0);
     let error = ChatBackend::chat(&backend, negative_request())
         .await
         .unwrap_err();
@@ -489,7 +484,9 @@ async fn live_openai_invalid_key_is_auth_denied() {
 #[tokio::test(flavor = "current_thread")]
 #[ignore = "requires live API access"]
 async fn live_anthropic_invalid_key_is_auth_denied() {
-    let backend = AnthropicBackend::try_new("converge-invalid-anthropic-key").unwrap().with_max_retries(0);
+    let backend = AnthropicBackend::try_new("converge-invalid-anthropic-key")
+        .unwrap()
+        .with_max_retries(0);
     let error = ChatBackend::chat(&backend, negative_request())
         .await
         .unwrap_err();
@@ -500,7 +497,9 @@ async fn live_anthropic_invalid_key_is_auth_denied() {
 #[tokio::test(flavor = "current_thread")]
 #[ignore = "requires live API access"]
 async fn live_gemini_invalid_key_is_auth_denied() {
-    let backend = GeminiBackend::try_new("converge-invalid-gemini-key").unwrap().with_max_retries(0);
+    let backend = GeminiBackend::try_new("converge-invalid-gemini-key")
+        .unwrap()
+        .with_max_retries(0);
     let error = ChatBackend::chat(&backend, negative_request())
         .await
         .unwrap_err();
@@ -511,7 +510,9 @@ async fn live_gemini_invalid_key_is_auth_denied() {
 #[tokio::test(flavor = "current_thread")]
 #[ignore = "requires live API access"]
 async fn live_mistral_invalid_key_is_auth_denied() {
-    let backend = MistralBackend::try_new("converge-invalid-mistral-key").unwrap().with_max_retries(0);
+    let backend = MistralBackend::try_new("converge-invalid-mistral-key")
+        .unwrap()
+        .with_max_retries(0);
     let error = ChatBackend::chat(&backend, negative_request())
         .await
         .unwrap_err();
@@ -846,7 +847,9 @@ async fn live_anthropic_json_format_integrity() {
         return;
     }
     let backend = AnthropicBackend::from_env().unwrap().with_max_retries(0);
-    let response = ChatBackend::chat(&backend, json_probe_request()).await.unwrap();
+    let response = ChatBackend::chat(&backend, json_probe_request())
+        .await
+        .unwrap();
     assert_json_status_ok(&response, "anthropic");
 }
 
@@ -858,7 +861,9 @@ async fn live_mistral_json_format_integrity() {
         return;
     }
     let backend = MistralBackend::from_env().unwrap().with_max_retries(0);
-    let response = ChatBackend::chat(&backend, json_probe_request()).await.unwrap();
+    let response = ChatBackend::chat(&backend, json_probe_request())
+        .await
+        .unwrap();
     assert_json_status_ok(&response, "mistral");
 }
 
@@ -872,7 +877,9 @@ async fn live_openrouter_json_format_integrity() {
     let backend = manifold::OpenRouterBackend::from_env()
         .unwrap()
         .with_max_retries(0);
-    let response = ChatBackend::chat(&backend, json_probe_request()).await.unwrap();
+    let response = ChatBackend::chat(&backend, json_probe_request())
+        .await
+        .unwrap();
     assert_json_status_ok(&response, "openrouter");
 }
 
@@ -884,7 +891,9 @@ async fn live_perplexity_json_format_integrity() {
         return;
     }
     let backend = PerplexityBackend::from_env().unwrap().with_max_retries(0);
-    let response = ChatBackend::chat(&backend, json_probe_request()).await.unwrap();
+    let response = ChatBackend::chat(&backend, json_probe_request())
+        .await
+        .unwrap();
     // Perplexity's JSON mode is best-effort (see backend doc comment). Assert
     // we got valid JSON back — content shape is the system prompt's job.
     assert_response_is_valid_json(&response, "perplexity");
@@ -898,7 +907,9 @@ async fn live_staik_json_format_integrity() {
         return;
     }
     let backend = StaikBackend::from_env().unwrap().with_max_retries(0);
-    let response = ChatBackend::chat(&backend, json_probe_request()).await.unwrap();
+    let response = ChatBackend::chat(&backend, json_probe_request())
+        .await
+        .unwrap();
     assert_json_status_ok(&response, "staik");
 }
 
@@ -995,9 +1006,7 @@ async fn live_openrouter_streaming_emits_tokens_and_finish() {
     if !require_env("OPENROUTER_API_KEY") {
         return;
     }
-    let backend = OpenRouterBackend::from_env()
-        .unwrap()
-        .with_max_retries(0);
+    let backend = OpenRouterBackend::from_env().unwrap().with_max_retries(0);
     let req = ChatRequest {
         messages: vec![ChatMessage {
             role: ChatRole::User,
@@ -1029,7 +1038,10 @@ async fn live_openrouter_streaming_emits_tokens_and_finish() {
             _ => {}
         }
     }
-    assert!(delta_count > 1, "expected multiple text deltas, got {delta_count}");
+    assert!(
+        delta_count > 1,
+        "expected multiple text deltas, got {delta_count}"
+    );
     assert!(!text.is_empty(), "expected non-empty accumulated text");
     assert!(finish_seen, "expected a Finish event");
     // Usage may or may not arrive depending on stream_options support;

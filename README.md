@@ -126,7 +126,7 @@ use manifold::{AnthropicBackend, EnvSecretProvider};
 use converge_provider::{ChatBackend, ChatRequest};
 
 let backend = AnthropicBackend::from_secret_provider(&EnvSecretProvider)?;
-// Product or Runway assembly registers the backend handle through
+// Product or Runtime Runway assembly registers the backend handle through
 // converge_provider::ChatBackendRegistry.
 ```
 

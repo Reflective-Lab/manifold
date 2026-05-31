@@ -406,7 +406,8 @@ mod tests {
 
     #[test]
     fn test_staik_backend_creation() {
-        let backend = StaikBackend::try_new("sk-st-test").unwrap()
+        let backend = StaikBackend::try_new("sk-st-test")
+            .unwrap()
             .with_model("qwen3.5:9b")
             .with_temperature(0.7);
 
@@ -467,7 +468,9 @@ mod tests {
                 .await;
         });
 
-        let backend = StaikBackend::try_new("sk-st-test").unwrap().with_model("gemma4:31b");
+        let backend = StaikBackend::try_new("sk-st-test")
+            .unwrap()
+            .with_model("gemma4:31b");
         // Override base_url for test
         let mut backend = backend;
         backend.base_url = server.uri();

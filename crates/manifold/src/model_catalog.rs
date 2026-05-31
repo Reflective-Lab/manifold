@@ -209,10 +209,7 @@ impl ModelCatalog {
 
         let status = response.status();
         if !status.is_success() {
-            return Err(CatalogError::Network(format!(
-                "HTTP {}",
-                status.as_u16()
-            )));
+            return Err(CatalogError::Network(format!("HTTP {}", status.as_u16())));
         }
 
         let body: OpenRouterModelsResponse = response

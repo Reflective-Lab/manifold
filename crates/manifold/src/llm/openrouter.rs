@@ -535,9 +535,9 @@ struct OpenRouterCostDetails {
 mod streaming_impl {
     use super::*;
     use crate::llm::{ChatEvent, ChatStream, StreamingChatBackend};
-    use futures::stream::{self, Stream, TryStreamExt};
     #[cfg(test)]
     use futures::StreamExt;
+    use futures::stream::{self, Stream, TryStreamExt};
     use std::collections::VecDeque;
     use std::pin::Pin;
 
@@ -546,9 +546,7 @@ mod streaming_impl {
             &self,
             req: ChatRequest,
         ) -> Pin<
-            Box<
-                dyn std::future::Future<Output = Result<ChatStream<'_>, ChatLlmError>> + Send + '_,
-            >,
+            Box<dyn std::future::Future<Output = Result<ChatStream<'_>, ChatLlmError>> + Send + '_>,
         > {
             Box::pin(async move {
                 let mut request_body =
@@ -766,9 +764,7 @@ mod streaming_impl {
                                 .unwrap_or("")
                                 .to_string();
                             if let Some(function) = tc.get("function") {
-                                if let Some(name) =
-                                    function.get("name").and_then(|v| v.as_str())
-                                {
+                                if let Some(name) = function.get("name").and_then(|v| v.as_str()) {
                                     events.push(ChatEvent::ToolCallStart {
                                         id: id.clone(),
                                         name: name.to_string(),
@@ -912,10 +908,7 @@ mod streaming_impl {
             let chunks: Vec<Result<Vec<u8>, ChatLlmError>> = vec![
                 Ok(b"data: {\"choices\":[{\"delta\":{\"content\":\"He".to_vec()),
                 Ok(b"llo\"}}]}\n\n".to_vec()),
-                Ok(
-                    b"data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"
-                        .to_vec(),
-                ),
+                Ok(b"data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n".to_vec()),
                 Ok(b"data: [DONE]\n\n".to_vec()),
             ];
             let upstream = futures::stream::iter(chunks);
@@ -949,7 +942,8 @@ mod tests {
 
     #[test]
     fn test_openrouter_backend_creation() {
-        let backend = OpenRouterBackend::try_new("test-key").unwrap()
+        let backend = OpenRouterBackend::try_new("test-key")
+            .unwrap()
             .with_model("openai/gpt-4o")
             .with_temperature(0.5);
 
@@ -1024,7 +1018,8 @@ mod tests {
 
     #[test]
     fn test_site_headers_set() {
-        let backend = OpenRouterBackend::try_new("test-key").unwrap()
+        let backend = OpenRouterBackend::try_new("test-key")
+            .unwrap()
             .with_site_url("https://converge.zone")
             .with_site_name("Converge");
 
@@ -1090,7 +1085,8 @@ mod tests {
                 .await;
         });
 
-        let backend = OpenRouterBackend::try_new("test-key").unwrap()
+        let backend = OpenRouterBackend::try_new("test-key")
+            .unwrap()
             .with_base_url(server.uri())
             .with_site_url("https://converge.zone")
             .with_site_name("Converge");

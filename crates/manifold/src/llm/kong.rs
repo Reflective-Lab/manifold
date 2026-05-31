@@ -490,7 +490,8 @@ mod tests {
 
     #[test]
     fn test_kong_backend_creation() {
-        let backend = KongBackend::try_new("test-key", "https://kong.example.com").unwrap()
+        let backend = KongBackend::try_new("test-key", "https://kong.example.com")
+            .unwrap()
             .with_model("gpt-4o-mini")
             .with_temperature(0.5);
 
@@ -510,12 +511,15 @@ mod tests {
 
     #[test]
     fn test_kong_backend_route_normalization() {
-        let backend = KongBackend::try_new("test-key", "https://kong.example.com").unwrap()
+        let backend = KongBackend::try_new("test-key", "https://kong.example.com")
+            .unwrap()
             .with_route("/custom/llm/v1/chat/");
 
         assert_eq!(backend.route, "custom/llm/v1/chat");
 
-        let defaulted = KongBackend::try_new("test-key", "https://kong.example.com").unwrap().with_route("");
+        let defaulted = KongBackend::try_new("test-key", "https://kong.example.com")
+            .unwrap()
+            .with_route("");
         assert_eq!(defaulted.route, "llm/v1/chat");
     }
 
@@ -759,7 +763,9 @@ mod tests {
                 .await;
         });
 
-        let backend = KongBackend::try_new("test-key", server.uri()).unwrap().with_route("api/llm/chat");
+        let backend = KongBackend::try_new("test-key", server.uri())
+            .unwrap()
+            .with_route("api/llm/chat");
         let response = runtime
             .block_on(backend.chat(ChatRequest {
                 messages: vec![ChatMessage {

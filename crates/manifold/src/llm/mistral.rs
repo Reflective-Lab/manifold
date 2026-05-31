@@ -426,7 +426,8 @@ mod tests {
 
     #[test]
     fn mistral_backend_creation() {
-        let backend = MistralBackend::try_new("test-key").unwrap()
+        let backend = MistralBackend::try_new("test-key")
+            .unwrap()
             .with_model("mistral-medium-latest")
             .with_temperature(0.2);
 

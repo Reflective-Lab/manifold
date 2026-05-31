@@ -465,7 +465,8 @@ mod tests {
 
     #[test]
     fn test_perplexity_backend_creation() {
-        let backend = PerplexityBackend::try_new("test-key").unwrap()
+        let backend = PerplexityBackend::try_new("test-key")
+            .unwrap()
             .with_model("sonar-reasoning")
             .with_temperature(0.5);
 
@@ -543,7 +544,8 @@ mod tests {
                 .await;
         });
 
-        let backend = PerplexityBackend::try_new("test-key").unwrap()
+        let backend = PerplexityBackend::try_new("test-key")
+            .unwrap()
             .with_base_url(server.uri());
 
         let response = runtime

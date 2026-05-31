@@ -42,11 +42,25 @@ fn main() -> ExitCode {
         .values()
         .filter(|e| e.pricing.prompt > 0.0)
         .count();
-    let with_tools = catalog.entries.values().filter(|e| e.supports_tools()).count();
-    let with_vision = catalog.entries.values().filter(|e| e.supports_vision()).count();
+    let with_tools = catalog
+        .entries
+        .values()
+        .filter(|e| e.supports_tools())
+        .count();
+    let with_vision = catalog
+        .entries
+        .values()
+        .filter(|e| e.supports_vision())
+        .count();
 
-    println!("Saved {} models to {}", catalog.entries.len(), path.display());
-    println!("  {prompt_priced} with prompt pricing, {with_tools} with tool use, {with_vision} with vision");
+    println!(
+        "Saved {} models to {}",
+        catalog.entries.len(),
+        path.display()
+    );
+    println!(
+        "  {prompt_priced} with prompt pricing, {with_tools} with tool use, {with_vision} with vision"
+    );
 
     ExitCode::SUCCESS
 }

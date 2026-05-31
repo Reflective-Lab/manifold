@@ -420,7 +420,8 @@ mod tests {
 
     #[test]
     fn test_openai_backend_creation() {
-        let backend = OpenAiBackend::try_new("test-key").unwrap()
+        let backend = OpenAiBackend::try_new("test-key")
+            .unwrap()
             .with_model("gpt-4o-mini")
             .with_temperature(0.5);
 
@@ -607,7 +608,9 @@ mod tests {
                 .await;
         });
 
-        let backend = OpenAiBackend::try_new("test-key").unwrap().with_base_url(server.uri());
+        let backend = OpenAiBackend::try_new("test-key")
+            .unwrap()
+            .with_base_url(server.uri());
         let response = runtime
             .block_on(backend.chat(ChatRequest {
                 messages: vec![

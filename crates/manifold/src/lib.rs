@@ -17,6 +17,7 @@ pub mod brave;
 ))]
 mod capability_registry;
 pub mod contract;
+pub mod cost_routing;
 #[cfg(feature = "qwen")]
 pub mod embedding;
 pub mod experience;
@@ -26,12 +27,13 @@ pub mod extract;
 pub mod feed;
 #[cfg(feature = "fetch")]
 pub mod fetch;
-pub mod llm;
-pub mod cost_routing;
 pub mod fuzzy_fitness;
+pub mod llm;
 #[cfg(feature = "_http")]
 pub mod model_catalog;
 pub mod object_storage;
+#[cfg(feature = "pagination")]
+pub mod pagination;
 #[cfg(feature = "perplexity")]
 pub mod perplexity;
 #[cfg(feature = "registry")]
@@ -47,15 +49,13 @@ pub mod reranker;
 ))]
 pub mod search;
 pub mod secret;
-#[cfg(feature = "pagination")]
-pub mod pagination;
 #[cfg(feature = "tavily")]
 pub mod tavily;
-#[cfg(feature = "xml")]
-pub mod xml;
 #[cfg(feature = "tools")]
 pub mod tools;
 pub mod vector;
+#[cfg(feature = "xml")]
+pub mod xml;
 
 pub mod model_selection;
 
@@ -93,6 +93,8 @@ pub use feed::{
 #[cfg(feature = "fetch")]
 pub use fetch::HttpFetchProvider;
 pub use llm::*;
+#[cfg(feature = "perplexity")]
+pub use perplexity::PerplexitySearchProvider;
 #[cfg(any(
     feature = "brave",
     feature = "tavily",
@@ -107,8 +109,6 @@ pub use search::{
     WebSearchRequest, WebSearchResponse, WebSearchResult,
 };
 pub use secret::{EnvSecretProvider, SecretError, SecretProvider, SecretString};
-#[cfg(feature = "perplexity")]
-pub use perplexity::PerplexitySearchProvider;
 #[cfg(feature = "tavily")]
 pub use tavily::TavilySearchProvider;
 #[cfg(feature = "tools")]

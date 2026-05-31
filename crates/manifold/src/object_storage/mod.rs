@@ -6,7 +6,12 @@
 use std::sync::Arc;
 
 #[cfg_attr(
-    not(any(feature = "object-local", feature = "object-s3", feature = "object-gcs", test)),
+    not(any(
+        feature = "object-local",
+        feature = "object-s3",
+        feature = "object-gcs",
+        test
+    )),
     allow(unused_imports)
 )]
 use converge_storage::{ObjectStore, StorageConfig, StorageError, StorageUri};

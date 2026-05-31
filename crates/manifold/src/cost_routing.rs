@@ -31,24 +31,19 @@
 //! ```
 
 use crate::model_selection::{ModelMetadata, ProviderRegistry, RejectionReason, SelectionResult};
-use converge_provider::selection::AgentRequirements;
 use converge_provider::LlmError;
+use converge_provider::selection::AgentRequirements;
 
 /// How to handle models that have no pricing data.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum BudgetMode {
     /// Admit models with no pricing data (default). Useful when some backends
     /// don't appear in the live catalog yet but you still want them selectable.
+    #[default]
     Lenient,
     /// Reject models with no pricing data. Use when you need a hard
     /// guarantee that every candidate was cost-checked.
     Strict,
-}
-
-impl Default for BudgetMode {
-    fn default() -> Self {
-        Self::Lenient
-    }
 }
 
 /// A per-request cost ceiling expressed in USD.
@@ -242,7 +237,15 @@ mod tests {
 
     #[test]
     fn rejects_priced_over_budget() {
-        let model = meta_priced("openai", "o1", CostClass::VeryHigh, 15_000, 0.96, 15.0, 60.0);
+        let model = meta_priced(
+            "openai",
+            "o1",
+            CostClass::VeryHigh,
+            15_000,
+            0.96,
+            15.0,
+            60.0,
+        );
         // 1000 * 15/1M + 500 * 60/1M = 0.015 + 0.03 = 0.045
         let budget = CostBudget::new(1000, 500, 0.01);
         assert!(!budget.admits(&model));
@@ -273,7 +276,15 @@ mod tests {
 
     #[test]
     fn budget_rejection_reason_message_is_formatted() {
-        let model = meta_priced("openai", "o1", CostClass::VeryHigh, 15_000, 0.96, 15.0, 60.0);
+        let model = meta_priced(
+            "openai",
+            "o1",
+            CostClass::VeryHigh,
+            15_000,
+            0.96,
+            15.0,
+            60.0,
+        );
         let budget = CostBudget::new(1000, 500, 0.01);
         let reason = budget.rejection_reason(&model).unwrap();
         let msg = format!("{reason}");

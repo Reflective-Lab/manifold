@@ -368,7 +368,10 @@ fn translate_minmax_status(base: &MinMaxBaseResp, model: &str) -> ChatLlmError {
         // 2013 is a generic "invalid params" — disambiguate by looking at the
         // message. MiniMax uses "unknown model 'X'" for model-not-found.
         2013 => {
-            if base.status_msg.to_ascii_lowercase().contains("unknown model")
+            if base
+                .status_msg
+                .to_ascii_lowercase()
+                .contains("unknown model")
                 || base.status_msg.to_ascii_lowercase().contains("model not")
             {
                 ChatLlmError::ModelNotFound {
@@ -525,7 +528,8 @@ mod tests {
 
     #[test]
     fn test_minmax_backend_creation() {
-        let backend = MinMaxBackend::try_new("test-key").unwrap()
+        let backend = MinMaxBackend::try_new("test-key")
+            .unwrap()
             .with_model("abab7-chat")
             .with_temperature(0.5);
 
@@ -603,7 +607,8 @@ mod tests {
                 .await;
         });
 
-        let backend = MinMaxBackend::try_new("test-key").unwrap()
+        let backend = MinMaxBackend::try_new("test-key")
+            .unwrap()
             .with_base_url(server.uri());
 
         let response = runtime

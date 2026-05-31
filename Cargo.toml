@@ -83,3 +83,22 @@ collapsible_if = "allow"
 match_same_arms = "allow"
 struct_field_names = "allow"
 float_cmp = "allow"
+
+[patch.crates-io]
+converge-pack         = { path = "../../bedrock-platform/converge/crates/pack" }
+converge-kernel       = { path = "../../bedrock-platform/converge/crates/kernel" }
+converge-core         = { path = "../../bedrock-platform/converge/crates/core" }
+converge-model        = { path = "../../bedrock-platform/converge/crates/model" }
+converge-optimization = { path = "../../bedrock-platform/converge/crates/optimization" }
+converge-runtime      = { path = "../../bedrock-platform/converge/crates/runtime" }
+converge-experience   = { path = "../../bedrock-platform/converge/crates/experience" }
+converge-provider     = { path = "../../bedrock-platform/converge/crates/provider" }
+organism-pack         = { path = "../../bedrock-platform/organism/crates/pack" }
+organism-intent       = { path = "../../bedrock-platform/organism/crates/intent" }
+organism-planning     = { path = "../../bedrock-platform/organism/crates/planning" }
+organism-adversarial  = { path = "../../bedrock-platform/organism/crates/adversarial" }
+organism-simulation   = { path = "../../bedrock-platform/organism/crates/simulation" }
+organism-learning     = { path = "../../bedrock-platform/organism/crates/learning" }
+organism-runtime      = { path = "../../bedrock-platform/organism/crates/runtime" }
+organism-dynamics     = { path = "../../bedrock-platform/organism/crates/dynamics" }
+

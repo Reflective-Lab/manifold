@@ -437,14 +437,18 @@ mod tests {
 
     #[test]
     fn test_qwen_backend_creation() {
-        let backend = QwenBackend::try_new("test-key").unwrap()
+        let backend = QwenBackend::try_new("test-key")
+            .unwrap()
             .with_model("qwen-max")
             .with_temperature(0.5);
 
         assert_eq!(backend.model, "qwen-max");
         assert_eq!(backend.temperature, 0.5);
         assert_eq!(backend.api_key.expose(), "test-key");
-        assert_eq!(backend.base_url, "https://dashscope.aliyuncs.com/compatible-mode");
+        assert_eq!(
+            backend.base_url,
+            "https://dashscope.aliyuncs.com/compatible-mode"
+        );
     }
 
     #[test]
@@ -511,7 +515,8 @@ mod tests {
                 .await;
         });
 
-        let backend = QwenBackend::try_new("test-key").unwrap()
+        let backend = QwenBackend::try_new("test-key")
+            .unwrap()
             .with_base_url(server.uri());
 
         let response = runtime

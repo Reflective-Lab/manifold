@@ -457,7 +457,8 @@ mod tests {
 
     #[test]
     fn test_gemini_backend_creation() {
-        let backend = GeminiBackend::try_new("test-key").unwrap()
+        let backend = GeminiBackend::try_new("test-key")
+            .unwrap()
             .with_model("gemini-2.5-pro")
             .with_temperature(0.5);
 
@@ -724,7 +725,9 @@ mod tests {
                 .await;
         });
 
-        let backend = GeminiBackend::try_new("test-key").unwrap().with_base_url(server.uri());
+        let backend = GeminiBackend::try_new("test-key")
+            .unwrap()
+            .with_base_url(server.uri());
         let req = ChatRequest {
             messages: vec![
                 ChatMessage {

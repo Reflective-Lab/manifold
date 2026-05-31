@@ -843,10 +843,16 @@ impl Default for ModelSelector {
                     .with_context_tokens(200_000)
                     .with_openrouter_id("perplexity/sonar-pro"),
                 #[cfg(feature = "perplexity")]
-                ModelMetadata::new("perplexity", "sonar-reasoning", CostClass::Medium, 5000, 0.92)
-                    .with_web_search(true)
-                    .with_reasoning(true)
-                    .with_context_tokens(127_000),
+                ModelMetadata::new(
+                    "perplexity",
+                    "sonar-reasoning",
+                    CostClass::Medium,
+                    5000,
+                    0.92,
+                )
+                .with_web_search(true)
+                .with_reasoning(true)
+                .with_context_tokens(127_000),
                 #[cfg(feature = "perplexity")]
                 ModelMetadata::new(
                     "perplexity",

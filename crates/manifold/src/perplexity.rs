@@ -123,7 +123,9 @@ impl WebSearchBackend for PerplexitySearchProvider {
                 role: "user".to_string(),
                 content: request.query.clone(),
             }],
-            max_tokens: request.max_results.map(|n| u32::from(n).saturating_mul(256)),
+            max_tokens: request
+                .max_results
+                .map(|n| u32::from(n).saturating_mul(256)),
         };
 
         let response = self
