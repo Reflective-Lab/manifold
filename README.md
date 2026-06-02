@@ -140,7 +140,7 @@ just lint
 just doc
 ```
 
-Converge platform dependencies resolve from crates.io at `3.8.1` or newer.
+Converge platform dependencies resolve from crates.io at `3.9.1` or newer.
 
 ## Project Files
 
